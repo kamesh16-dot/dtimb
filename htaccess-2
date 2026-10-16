@@ -1,0 +1,20 @@
+# Safety net for hosts whose web root is THIS folder (the one containing app/, public/, writable/).
+# Best practice is to point the web root at the "public" folder instead - in that case this
+# file is never read and nothing here applies.
+#
+# What it does: keeps project internals (.env, app code, saved enquiries, vendor) away from
+# visitors, and serves the site from public/ so no /public/ shows up in the address.
+
+Options -Indexes
+
+<IfModule mod_rewrite.c>
+	RewriteEngine On
+
+	# Never serve project internals.
+	RewriteRule ^(app|vendor|writable|tests|tools|builds|spark|composer\.json|composer\.lock|env|preload\.php|phpunit\.dist\.xml|README\.md|LICENSE)(/|$) - [F,L,NC]
+	RewriteRule (^|/)\.(?!well-known/) - [F,L]
+
+	# Everything else is served from public/.
+	RewriteCond %{REQUEST_URI} !^/public/
+	RewriteRule ^(.*)$ public/$1 [L]
+</IfModule>
