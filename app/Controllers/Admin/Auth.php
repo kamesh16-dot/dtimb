@@ -19,7 +19,12 @@ class Auth extends AdminController
 
     // ── GET /admin/login ──────────────────────────────────────────────────────
 
-    public function login(): string
+    /**
+     * Already signed in, this redirects rather than renders, so the return
+     * type has to allow both. Declaring it `string` made visiting the login
+     * page while signed in — a bookmark, or the back button — a 500.
+     */
+    public function login(): string|\CodeIgniter\HTTP\RedirectResponse
     {
         if (session()->get('admin_logged_in')) {
             return redirect()->to('/admin');
@@ -96,17 +101,9 @@ class Auth extends AdminController
         $new     = $this->request->getPost('password') ?? '';
         $confirm = $this->request->getPost('password_confirm') ?? '';
 
-        if (strlen($new) < 12) {
-            return redirect()->to('/admin/change-password')->with('error', 'Password must be at least 12 characters.');
-        }
-        if (! preg_match('/[A-Z]/', $new)) {
-            return redirect()->to('/admin/change-password')->with('error', 'Password must contain at least one uppercase letter.');
-        }
-        if (! preg_match('/[0-9]/', $new)) {
-            return redirect()->to('/admin/change-password')->with('error', 'Password must contain at least one number.');
-        }
-        if (! preg_match('/[^A-Za-z0-9]/', $new)) {
-            return redirect()->to('/admin/change-password')->with('error', 'Password must contain at least one symbol.');
+        $problems = UserModel::passwordProblems($new);
+        if ($problems !== []) {
+            return redirect()->to('/admin/change-password')->with('error', $problems[0]);
         }
         if ($new !== $confirm) {
             return redirect()->to('/admin/change-password')->with('error', 'Passwords do not match.');
@@ -118,7 +115,7 @@ class Auth extends AdminController
         }
 
         $this->users->update($userId, [
-            'password_hash'         => password_hash($new, PASSWORD_BCRYPT),
+            'password_hash'         => UserModel::hash($new),
             'force_password_change' => 0,
         ]);
 

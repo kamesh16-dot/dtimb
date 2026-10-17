@@ -1,80 +1,178 @@
-<?php namespace App\Controllers\Admin;
+<?php
 
+namespace App\Controllers\Admin;
+
+use App\Models\MachineModel;
+use CodeIgniter\Exceptions\PageNotFoundException;
+use CodeIgniter\HTTP\RedirectResponse;
+
+/**
+ * Machines CRUD. Everything saved here is what the public site renders —
+ * the listings, the header menu and the /machines/<slug> pages.
+ */
 class Machines extends AdminController
 {
+    protected MachineModel $machines;
+
+    public function initController(
+        \CodeIgniter\HTTP\RequestInterface $request,
+        \CodeIgniter\HTTP\ResponseInterface $response,
+        \Psr\Log\LoggerInterface $logger
+    ): void {
+        parent::initController($request, $response, $logger);
+        $this->machines = new MachineModel();
+    }
+
     public function index(): string
     {
-        $db   = db_connect();
-        $rows = [];
-        try {
-            $rows = $db->table('machines')
-                       ->where('deleted_at IS NULL', null, false)
-                       ->orderBy('sort_order', 'ASC')
-                       ->get()->getResultArray();
-        } catch (\Throwable) {}
-
         return $this->adminView('admin/machines/index', [
             'pageTitle' => 'Machines',
-            'rows'      => $rows,
+            'rows'      => $this->machines->forAdmin(),
         ]);
     }
 
     public function create(): string
     {
-        return $this->adminView('admin/machines/form', [
-            'pageTitle' => 'Add Machine',
-            'row'       => [],
-        ]);
-    }
-
-    public function store(): \CodeIgniter\HTTP\RedirectResponse
-    {
-        $data = $this->_formData();
-        $data['created_at'] = date('Y-m-d H:i:s');
-        $data['updated_at'] = date('Y-m-d H:i:s');
-        db_connect()->table('machines')->insert($data);
-        $this->audit('machine_create', $data['name'] ?? '');
-        return redirect()->to('/admin/machines')->with('success', 'Machine created.');
+        return $this->form([
+            'kind'         => 'product',
+            'show_in_menu' => 1,
+            'is_published' => 1,
+            'menu_order'   => $this->nextOrder('menu_order'),
+            'nav_order'    => $this->nextOrder('nav_order'),
+        ], 'Add Machine');
     }
 
     public function edit(int $id): string
     {
-        $row = db_connect()->table('machines')->where('id', $id)->get()->getRowArray();
-        if (! $row) throw \CodeIgniter\Exceptions\PageNotFoundException::forPageNotFound();
-        return $this->adminView('admin/machines/form', [
-            'pageTitle' => 'Edit Machine',
-            'row'       => $row,
-        ]);
+        $row = $this->machines->find($id);
+        if (! $row) {
+            throw PageNotFoundException::forPageNotFound();
+        }
+
+        return $this->form($row, 'Edit Machine');
     }
 
-    public function update(int $id): \CodeIgniter\HTTP\RedirectResponse
+    public function store(): RedirectResponse
     {
-        $data = $this->_formData();
-        $data['updated_at'] = date('Y-m-d H:i:s');
-        db_connect()->table('machines')->where('id', $id)->update($data);
-        $this->audit('machine_update', $data['name'] ?? '', $id);
+        $data = $this->formData();
+
+        if (! $this->machines->insert($data)) {
+            return $this->backWithErrors($this->machines->errors());
+        }
+
+        $this->audit('machine_create', $data['name'], (int) $this->machines->getInsertID(), 'machine');
+
+        return redirect()->to('/admin/machines')->with('success', 'Machine created.');
+    }
+
+    public function update(int $id): RedirectResponse
+    {
+        $row = $this->machines->find($id);
+        if (! $row) {
+            throw PageNotFoundException::forPageNotFound();
+        }
+
+        // The slug's is_unique rule carries an {id} placeholder so a machine
+        // does not collide with itself. Model::update() fills placeholders from
+        // the data it is given, so the id has to travel with it; it is not in
+        // allowedFields, so it never reaches the UPDATE statement.
+        $data = ['id' => $id] + $this->formData();
+
+        if (! $this->machines->update($id, $data)) {
+            return $this->backWithErrors($this->machines->errors());
+        }
+
+        $this->audit('machine_update', $data['name'], $id, 'machine');
+
         return redirect()->to('/admin/machines')->with('success', 'Machine updated.');
     }
 
-    public function delete(int $id): \CodeIgniter\HTTP\RedirectResponse
+    public function delete(int $id): RedirectResponse
     {
         $this->requireRole('admin');
-        db_connect()->table('machines')->where('id', $id)->update(['deleted_at' => date('Y-m-d H:i:s')]);
-        $this->audit('machine_delete', '', $id);
-        return redirect()->to('/admin/machines')->with('success', 'Machine deleted.');
+
+        $row = $this->machines->find($id);
+        if (! $row) {
+            throw PageNotFoundException::forPageNotFound();
+        }
+
+        $this->machines->delete($id); // soft delete — keeps details_json recoverable
+        $this->audit('machine_delete', $row['name'], $id, 'machine');
+
+        return redirect()->to('/admin/machines')
+                         ->with('success', 'Machine deleted. Its slug stays reserved.');
     }
 
-    private function _formData(): array
+    public function restore(int $id): RedirectResponse
+    {
+        $this->requireRole('admin');
+
+        $row = $this->machines->withDeleted()->find($id);
+        if (! $row) {
+            throw PageNotFoundException::forPageNotFound();
+        }
+
+        $this->machines->restore($id);
+        $this->audit('machine_restore', $row['name'], $id, 'machine');
+
+        return redirect()->to('/admin/machines')->with('success', 'Machine restored.');
+    }
+
+    // ── Internals ─────────────────────────────────────────────────────────────
+
+    private function form(array $row, string $title): string
+    {
+        return $this->adminView('admin/machines/form', [
+            'pageTitle' => $title,
+            'row'       => $row,
+            'groups'    => $this->machines->groupNames(),
+            'visuals'   => MachineModel::VISUALS,
+            'sheets'    => $this->specSheets(),
+            'images'    => array_keys(timb_manifest()),
+            'errors'    => session()->getFlashdata('errors') ?? [],
+        ]);
+    }
+
+    /**
+     * Read the editable columns off the form. details_json is deliberately not
+     * in here: the rich product-page payload is not editable through this form,
+     * so an update must leave whatever is already stored untouched.
+     */
+    private function formData(): array
     {
         $post = $this->request->getPost();
+
         return [
-            'name'        => $post['name']        ?? '',
-            'slug'        => $post['slug']        ?? '',
-            'category'    => $post['category']    ?? '',
-            'summary'     => $post['summary']     ?? '',
-            'description' => $post['description'] ?? '',
-            'is_featured' => isset($post['is_featured']) ? 1 : 0,
-            'sort_order'  => (int)($post['sort_order'] ?? 0),
+            'name'         => trim((string) ($post['name'] ?? '')),
+            'slug'         => trim((string) ($post['slug'] ?? '')),
+            'group_name'   => trim((string) ($post['group_name'] ?? '')),
+            'kind'         => ($post['kind'] ?? 'product') === 'solution' ? 'solution' : 'product',
+            'series_label' => trim((string) ($post['series_label'] ?? '')),
+            'metric'       => trim((string) ($post['metric'] ?? '')),
+            'summary'      => trim((string) ($post['summary'] ?? '')),
+            'image_key'    => trim((string) ($post['image_key'] ?? '')) ?: null,
+            'visual_key'   => trim((string) ($post['visual_key'] ?? '')) ?: null,
+            'spec_sheet'   => trim((string) ($post['spec_sheet'] ?? '')) ?: null,
+            'menu_order'   => (int) ($post['menu_order'] ?? 0),
+            'nav_order'    => (int) ($post['nav_order'] ?? 0),
+            'show_in_menu' => isset($post['show_in_menu']) ? 1 : 0,
+            'is_published' => isset($post['is_published']) ? 1 : 0,
         ];
+    }
+
+    /** One past the current highest, so a new machine lands at the end. */
+    private function nextOrder(string $column): int
+    {
+        $row = $this->machines->builder()->selectMax($column)->get()->getRowArray();
+
+        return (int) ($row[$column] ?? -1) + 1;
+    }
+
+    /** Spec sheets available under public/spec-sheets/. */
+    private function specSheets(): array
+    {
+        $files = glob(FCPATH . 'spec-sheets/*.html') ?: [];
+
+        return array_map(static fn ($f) => basename($f, '.html'), $files);
     }
 }

@@ -76,16 +76,26 @@ class PublicRoutesTest extends CIUnitTestCase
 
     // ── 404 routes — CI4 4.5 throws PageNotFoundException in test context ─────
 
-    public function testUnknownPathThrows404Exception(): void
+    /**
+     * Unmatched addresses go through App\Controllers\NotFound, which checks
+     * the redirects table first, so a 404 now comes back as a response rather
+     * than as an uncaught PageNotFoundException.
+     */
+    public function testUnknownPathReturns404(): void
     {
-        $this->expectException(PageNotFoundException::class);
-        $this->get('/this-page-does-not-exist');
+        $this->get('/this-page-does-not-exist')->assertStatus(404);
     }
 
-    public function testUnknownMachineSlugThrows404Exception(): void
+    public function testUnknownMachineSlugReturns404(): void
     {
-        $this->expectException(PageNotFoundException::class);
-        $this->get('/machines/not-a-real-machine');
+        $this->get('/machines/not-a-real-machine')->assertStatus(404);
+    }
+
+    public function testAnUnknownPathStillReaches404WhenTheRedirectsTableIsUnreadable(): void
+    {
+        // The test database has no redirects table; the lookup must fail
+        // quietly and leave the visitor on a normal 404.
+        $this->get('/no-such-page-at-all')->assertStatus(404);
     }
 
     // ── Content assertions ────────────────────────────────────────────────────

@@ -2,15 +2,20 @@
 
 namespace App\Controllers;
 
+use App\Models\ApplicationModel;
+use App\Models\EnquiryModel;
 use CodeIgniter\HTTP\RedirectResponse;
 
 /**
  * Contact / enquiry and career-application forms.
  *
- * Every submission is saved to writable/forms/<kind>-YYYY-MM.jsonl (CVs go to
- * writable/uploads/careers/) and an email is attempted to Config\Site::$email.
- * Email only works once app/Config/Email.php (SMTP) is configured - until then
- * the saved files are the record.
+ * Every submission is saved to the database, where it appears in the admin
+ * inbox, and an email is attempted to Config\Site::$email. CVs go to
+ * writable/uploads/careers/, outside the web root.
+ *
+ * If the database write fails the submission is appended to
+ * writable/forms/<kind>-YYYY-MM.jsonl instead, so a visitor's message is never
+ * lost because of a database problem.
  */
 class Forms extends BaseController
 {
@@ -73,17 +78,77 @@ class Forms extends BaseController
                 $name = $file->getRandomName();
                 $file->move($dir, $name);
                 $attachment = $dir . '/' . $name;
-                $data['resume_file'] = $name;
+                // Relative to writable/uploads/, which is what cv_path stores.
+                $data['cv_path']         = 'careers/' . $name;
                 $data['resume_original'] = $file->getClientName();
             }
         }
 
-        $this->store($kind, $data);
+        $this->save($kind, $data);
         $this->mail($kind, $data, $attachment);
 
         return redirect()->to($back)->with('form_ok', $kind);
     }
 
+    /**
+     * Record the submission. The database is the inbox; the file is the
+     * fallback for when it cannot be written.
+     */
+    private function save(string $kind, array $data): void
+    {
+        try {
+            $kind === 'career'
+                ? $this->saveApplication($data)
+                : $this->saveEnquiry($data);
+
+            return;
+        } catch (\Throwable $e) {
+            log_message('error', 'Could not save ' . $kind . ' submission, falling back to file: ' . $e->getMessage());
+        }
+
+        $this->store($kind, $data);
+    }
+
+    private function saveEnquiry(array $data): void
+    {
+        $model = new EnquiryModel();
+
+        if (! $model->insert([
+            'name'       => $data['name'] ?? '',
+            'email'      => $data['email'] ?? '',
+            'phone'      => $data['phone'] ?? '',
+            'company'    => $data['company'] ?? '',
+            'interest'   => $data['interest'] ?? '',
+            'message'    => $data['message'] ?? '',
+            'ip'         => $this->request->getIPAddress(),
+            'user_agent' => substr((string) $this->request->getUserAgent(), 0, 500),
+            'status'     => 'new',
+        ])) {
+            throw new \RuntimeException('enquiry insert rejected: ' . implode(' ', $model->errors()));
+        }
+    }
+
+    private function saveApplication(array $data): void
+    {
+        $model = new ApplicationModel();
+
+        $experience = trim((string) ($data['experience'] ?? ''));
+
+        if (! $model->insert([
+            'name'       => $data['name'] ?? '',
+            'email'      => $data['email'] ?? '',
+            'phone'      => $data['phone'] ?? '',
+            'area'       => $data['area'] ?? '',
+            'experience' => $experience === '' ? null : (float) $experience,
+            'message'    => $data['message'] ?? '',
+            'cv_path'    => $data['cv_path'] ?? '',
+            'status'     => 'new',
+        ])) {
+            throw new \RuntimeException('application insert rejected: ' . implode(' ', $model->errors()));
+        }
+    }
+
+    /** Append-only fallback record, used when the database write fails. */
     private function store(string $kind, array $data): void
     {
         $dir = WRITEPATH . 'forms';

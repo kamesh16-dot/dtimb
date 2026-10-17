@@ -34,20 +34,22 @@ abstract class AdminController extends BaseController
     }
 
     /** Log an action to the audit_log table */
-    protected function audit(string $action, string $detail = '', ?int $targetId = null): void
+    protected function audit(string $action, string $summary = '', ?int $entityId = null, string $entity = ''): void
     {
         try {
             db_connect()->table('audit_log')->insert([
                 'user_id'    => $this->adminUser['id'] ?? 0,
-                'user_email' => $this->adminUser['email'] ?? 'system',
                 'action'     => $action,
-                'detail'     => $detail,
-                'target_id'  => $targetId,
+                'entity'     => $entity ?: strtok($action, '_'),
+                'entity_id'  => $entityId,
+                'summary'    => $summary,
                 'ip'         => $this->request->getIPAddress(),
                 'created_at' => date('Y-m-d H:i:s'),
+                'updated_at' => date('Y-m-d H:i:s'),
             ]);
-        } catch (\Throwable) {
+        } catch (\Throwable $e) {
             // audit failure must never break the request
+            log_message('error', 'Audit write failed: ' . $e->getMessage());
         }
     }
 
@@ -69,5 +71,13 @@ abstract class AdminController extends BaseController
     protected function backWithSuccess(string $msg): \CodeIgniter\HTTP\RedirectResponse
     {
         return redirect()->back()->with('success', $msg);
+    }
+
+    /** Flash per-field validation errors and redirect back with the input intact */
+    protected function backWithErrors(array $errors): \CodeIgniter\HTTP\RedirectResponse
+    {
+        return redirect()->back()->withInput()
+                         ->with('errors', $errors)
+                         ->with('error', 'Please correct the highlighted fields.');
     }
 }

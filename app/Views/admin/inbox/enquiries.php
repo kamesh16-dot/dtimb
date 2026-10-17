@@ -1,31 +1,30 @@
-<div class="page-header">
-  <h1>Inbox</h1>
-  <div style="display:flex;gap:.5rem">
-    <a href="/admin/inbox" class="btn <?= ($tab ?? '') === 'enquiries' ? 'btn-primary' : 'btn-secondary' ?>">Enquiries</a>
-    <a href="/admin/inbox/applications" class="btn <?= ($tab ?? '') === 'applications' ? 'btn-primary' : 'btn-secondary' ?>">Applications</a>
-  </div>
-</div>
+<?= view('admin/inbox/_tabs', ['tab' => $tab, 'status' => $status, 'counts' => $counts, 'otherNew' => $otherNew]) ?>
+
 <div class="card">
   <div class="table-wrap">
     <table class="data-table">
-      <thead><tr><th>Name</th><th>Email</th><th>Subject / Message</th><th>Date</th><th>Status</th><th></th></tr></thead>
+      <thead>
+        <tr><th>From</th><th>Company</th><th>Interest</th><th>Message</th><th>Received</th><th>Status</th><th></th></tr>
+      </thead>
       <tbody>
         <?php if (empty($rows)): ?>
-          <tr><td colspan="6" style="text-align:center;color:var(--dim);padding:2rem">No enquiries yet.</td></tr>
+          <tr><td colspan="7" style="text-align:center;color:var(--dim);padding:2rem">Nothing here.</td></tr>
         <?php else: foreach ($rows as $r): ?>
-          <tr>
-            <td><?= esc($r['name'] ?? '—') ?></td>
-            <td style="font-size:.78rem"><?= esc($r['email'] ?? '—') ?></td>
-            <td style="max-width:280px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;color:var(--muted)"><?= esc(strip_tags($r['message'] ?? $r['subject'] ?? '—')) ?></td>
-            <td style="font-size:.75rem;color:var(--dim)"><?= esc(substr($r['created_at'] ?? '', 0, 10)) ?></td>
-            <td><?= ($r['status'] ?? 'new') === 'new' ? '<span class="pill pill-red">New</span>' : '<span class="pill pill-grey">Read</span>' ?></td>
+          <tr<?= $r['status'] === 'new' ? ' style="font-weight:600"' : '' ?>>
             <td>
-              <?php if (($r['status'] ?? 'new') === 'new'): ?>
-              <form method="POST" action="/admin/inbox/read/<?= $r['id'] ?>/enquiry">
-                <?= csrf_field() ?><button type="submit" class="btn btn-secondary" style="padding:.3rem .7rem;font-size:.75rem">Mark read</button>
-              </form>
-              <?php endif ?>
+              <?= esc($r['name']) ?>
+              <div style="font-size:.72rem;color:var(--dim);font-weight:400"><?= esc($r['email']) ?></div>
             </td>
+            <td style="font-size:.8rem;font-weight:400"><?= esc($r['company'] !== '' ? $r['company'] : '—') ?></td>
+            <td style="font-size:.8rem;font-weight:400"><?= esc($r['interest'] !== '' ? $r['interest'] : '—') ?></td>
+            <td style="max-width:22rem;font-size:.8rem;color:var(--dim);font-weight:400"><?= esc(mb_strimwidth((string) $r['message'], 0, 90, '…')) ?></td>
+            <td style="font-size:.75rem;color:var(--dim);white-space:nowrap;font-weight:400"><?= esc(date('d M Y, H:i', strtotime((string) $r['created_at']))) ?></td>
+            <td>
+              <?php if ($r['status'] === 'new'): ?><span class="pill pill-red">New</span>
+              <?php elseif ($r['status'] === 'archived'): ?><span class="pill pill-grey">Archived</span>
+              <?php else: ?><span class="pill pill-green">Read</span><?php endif ?>
+            </td>
+            <td><a href="/admin/inbox/message/enquiry/<?= $r['id'] ?>" class="btn btn-secondary" style="padding:.3rem .7rem;font-size:.75rem">Open</a></td>
           </tr>
         <?php endforeach; endif ?>
       </tbody>

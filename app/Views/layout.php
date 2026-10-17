@@ -4,9 +4,16 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-  <meta name="description" content="<?= esc($metaDesc ?? 'TIMB engineers metal-forming, tube processing and testing machinery for industrial production.', 'attr') ?>">
+<?php
+  // Resolved once so the description, the title and the sharing tags below
+  // can never disagree with each other.
+  $pageDesc  = $metaDesc ?? 'TIMB engineers metal-forming, tube processing and testing machinery for industrial production.';
+  $pageTitle = $title ?? ($site->name . ' | Precision Industrial Machinery');
+?>
+  <meta name="description" content="<?= esc($pageDesc, 'attr') ?>">
   <meta name="theme-color" content="#0f1318">
-  <title><?= esc($title ?? ($site->name . ' | Precision Industrial Machinery')) ?></title>
+  <title><?= esc($pageTitle) ?></title>
+<?= view('partials/seo_head', ['pageTitle' => $pageTitle, 'pageDesc' => $pageDesc, 'site' => $site]) ?>
   <link rel="icon" href="<?= asset_url('favicon.ico') ?>" sizes="any">
   <link rel="icon" type="image/png" sizes="32x32" href="<?= asset_url('favicon-32.png') ?>">
   <link rel="apple-touch-icon" href="<?= asset_url('apple-touch-icon.png') ?>">

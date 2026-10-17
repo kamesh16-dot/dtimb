@@ -102,4 +102,16 @@ class SiteHelperTest extends CIUnitTestCase
         $url = asset_url('assets/css/style.css');
         $this->assertStringContainsString('assets/css/style.css', $url);
     }
+
+    public function testImgTagReturnsEmptyStringForAnUnsetKey(): void
+    {
+        // A machine with no photo passes an empty key; that is a normal state,
+        // not an error, and must not reach the typed manifest lookup.
+        $this->assertSame('', img_tag('', '640', 'alt'));
+    }
+
+    public function testImgTagStillReturnsEmptyStringForAnUnknownKey(): void
+    {
+        $this->assertSame('', img_tag('no/such-image', '640', 'alt'));
+    }
 }

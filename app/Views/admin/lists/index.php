@@ -1,28 +1,28 @@
 <div class="page-header"><h1>Lists Hub</h1></div>
-<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:.875rem">
-  <?php
-  $lists = [
-    ['label' => 'Career Areas',    'url' => '#', 'desc' => 'Manage available career departments'],
-    ['label' => 'Industries',      'url' => '#', 'desc' => 'Industry sectors served by TIMB'],
-    ['label' => 'Clients',         'url' => '#', 'desc' => 'Client company names & logos'],
-    ['label' => 'Hero Slides',     'url' => '#', 'desc' => 'Homepage hero carousel slides'],
-    ['label' => 'Stats',           'url' => '#', 'desc' => 'Company milestone numbers'],
-    ['label' => 'Pillars',         'url' => '#', 'desc' => 'Core values / mission pillars'],
-    ['label' => 'FAQ Items',       'url' => '#', 'desc' => 'Frequently asked questions'],
-    ['label' => 'Process Steps',   'url' => '#', 'desc' => 'Manufacturing process timeline'],
-    ['label' => 'Network Nodes',   'url' => '#', 'desc' => 'Sales / service network locations'],
-    ['label' => 'Disclaimer Points','url' => '#','desc' => 'Legal disclaimer bullet points'],
-  ];
-  foreach ($lists as $l):
-  ?>
-  <div class="card card-pad" style="opacity:<?= $l['url'] === '#' ? '.6' : '1' ?>">
-    <div style="font-weight:700;font-size:.9rem;margin-bottom:.3rem;color:var(--text)"><?= esc($l['label']) ?></div>
-    <div style="font-size:.75rem;color:var(--dim);margin-bottom:.75rem"><?= esc($l['desc']) ?></div>
-    <?php if ($l['url'] !== '#'): ?>
-      <a href="<?= $l['url'] ?>" class="btn btn-secondary" style="padding:.3rem .7rem;font-size:.75rem">Manage →</a>
-    <?php else: ?>
-      <span style="font-size:.7rem;color:var(--dim)">Coming soon</span>
-    <?php endif ?>
-  </div>
+
+<p style="margin:0 0 1rem;font-size:.8rem;color:var(--dim);max-width:46rem">
+  The small repeating sets of content behind the site. Editing one here changes
+  the page it appears on straight away.
+</p>
+
+<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(250px,1fr));gap:.875rem">
+  <?php foreach ($cards as $c): ?>
+    <a href="/admin/lists/<?= esc($c['key'], 'url') ?>" class="card card-pad" style="display:block;text-decoration:none;color:inherit">
+      <div style="display:flex;align-items:baseline;justify-content:space-between;gap:.5rem">
+        <span style="font-weight:700;font-size:.9rem;color:var(--text)"><?= esc($c['label']) ?></span>
+        <?php if ($c['count'] === null): ?>
+          <span class="pill pill-red">Unreadable</span>
+        <?php else: ?>
+          <span class="pill pill-grey"><?= (int) $c['count'] ?></span>
+        <?php endif ?>
+      </div>
+      <div style="font-size:.75rem;color:var(--dim);margin:.3rem 0 .5rem"><?= esc($c['description']) ?></div>
+      <div style="font-size:.7rem;color:var(--dim)">
+        <?= esc($c['consumer']) ?>
+        <?php if ($c['count'] !== null && $c['active'] < $c['count']): ?>
+          · <?= (int) ($c['count'] - $c['active']) ?> hidden
+        <?php endif ?>
+      </div>
+    </a>
   <?php endforeach ?>
 </div>

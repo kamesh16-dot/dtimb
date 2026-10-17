@@ -1,34 +1,65 @@
-<?php namespace App\Controllers\Admin;
+<?php
 
+namespace App\Controllers\Admin;
+
+use App\Models\SiteSettingModel;
+use CodeIgniter\HTTP\RedirectResponse;
+
+/**
+ * Site identity: the name, tagline, contact email and links the layout
+ * renders on every page.
+ *
+ * Addresses shown on the contact page are not here — they are locations, and
+ * live in the Lists Hub. Mail server details are not here either: they are
+ * credentials and belong in the .env file, not the database.
+ */
 class Settings extends AdminController
 {
     public function index(): string
     {
         $this->requireRole('admin');
-        $settings = [];
-        try {
-            $rows = db_connect()->table('settings')->get()->getResultArray();
-            foreach ($rows as $r) { $settings[$r['key']] = $r['value']; }
-        } catch (\Throwable) {}
-        return $this->adminView('admin/settings/index', ['pageTitle' => 'Settings', 'settings' => $settings]);
+
+        return $this->adminView('admin/settings/index', [
+            'pageTitle' => 'Settings',
+            'settings'  => SiteSettingModel::all(),
+            'fields'    => SiteSettingModel::FIELDS,
+            'mail'      => $this->mailStatus(),
+            'errors'    => session()->getFlashdata('errors') ?? [],
+        ]);
     }
-    public function update(): \CodeIgniter\HTTP\RedirectResponse
+
+    public function update(): RedirectResponse
     {
         $this->requireRole('admin');
-        $db   = db_connect();
-        $post = $this->request->getPost();
-        foreach ($post as $key => $value) {
-            if (str_starts_with($key, 'setting_')) {
-                $k      = substr($key, 8);
-                $exists = $db->table('settings')->where('key', $k)->countAllResults();
-                if ($exists) {
-                    $db->table('settings')->where('key', $k)->update(['value' => $value, 'updated_at' => date('Y-m-d H:i:s')]);
-                } else {
-                    $db->table('settings')->insert(['key' => $k, 'value' => $value, 'created_at' => date('Y-m-d H:i:s'), 'updated_at' => date('Y-m-d H:i:s')]);
-                }
-            }
+
+        $post   = $this->request->getPost();
+        $errors = SiteSettingModel::problems($post);
+
+        if ($errors !== []) {
+            return $this->backWithErrors($errors);
         }
-        $this->audit('settings_update');
+
+        SiteSettingModel::save($post);
+        $this->audit('settings_update', 'Site settings', null, 'settings');
+
         return redirect()->to('/admin/settings')->with('success', 'Settings saved.');
+    }
+
+    /**
+     * Whether outgoing mail is configured. Read-only: the host and password
+     * are credentials, so they stay in .env where they are not in the
+     * database and not editable through the browser.
+     */
+    private function mailStatus(): array
+    {
+        $email = config('Email');
+        $host  = trim((string) ($email->SMTPHost ?? ''));
+
+        return [
+            'configured' => $host !== '',
+            'host'       => $host,
+            'protocol'   => (string) ($email->protocol ?? 'mail'),
+            'from'       => (string) ($email->fromEmail ?? ''),
+        ];
     }
 }

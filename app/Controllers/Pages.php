@@ -2,21 +2,81 @@
 
 namespace App\Controllers;
 
+use App\Models\NewsModel;
+use App\Models\PageModel;
+
 /** Company pages: /about /infrastructure /projects /clients /industries /careers. Copy: App\Data\Content. */
 class Pages extends BaseController
 {
+    private ?PageModel $pages = null;
+
     private function page(string $view, string $title, string $desc, array $extra = []): string
     {
         $site = config('Site');
 
+        // The view name doubles as the page key in the pages table.
+        $content = $extra['c'] ?? require APPPATH . 'Data/Content.php';
+        unset($extra['c']);
+
+        // Lists Hub content wins over the file copy, list by list.
+        try {
+            $content = $this->siteLists()->applyToContent($content);
+        } catch (\Throwable $e) {
+            log_message('error', 'List overlay failed, using Content defaults: ' . $e->getMessage());
+        }
+
+        // Merge rather than replace: whatever the CMS holds wins, and anything
+        // it has no row for falls back to App\Data\Content, so a page view can
+        // never reach for a block that is simply not stored yet.
+        $blocks = $this->pageBlocks($view);
+        if ($blocks !== null) {
+            $content[$view] = $blocks + (array) ($content[$view] ?? []);
+        }
+
+        [$seoTitle, $seoDesc] = $this->pageSeo($view);
+
         return view('pages/' . $view, $extra + [
             'site'     => $site,
-            'c'        => require APPPATH . 'Data/Content.php',
+            'c'        => $content,
             'all'      => array_merge($site->products, $site->solutions),
-            'title'    => $title . ' | ' . $site->name,
-            'metaDesc' => $desc,
+            'title'    => $seoTitle ?? ($title . ' | ' . $site->name),
+            'metaDesc' => $seoDesc ?? $desc,
             'preload'  => null,
         ]);
+    }
+
+    /**
+     * Browser title and meta description from the CMS. Either may be null,
+     * meaning the caller's own default stands.
+     *
+     * @return array{0:?string,1:?string}
+     */
+    private function pageSeo(string $key): array
+    {
+        try {
+            return $this->pageModel()->seo($key);
+        } catch (\Throwable $e) {
+            log_message('error', 'Page SEO lookup failed: ' . $e->getMessage());
+
+            return [null, null];
+        }
+    }
+
+    /** Content blocks from the CMS, or null to keep App\Data\Content's copy. */
+    private function pageBlocks(string $key): ?array
+    {
+        try {
+            return $this->pageModel()->blocks($key);
+        } catch (\Throwable $e) {
+            log_message('error', 'Page blocks lookup failed: ' . $e->getMessage());
+
+            return null;
+        }
+    }
+
+    private function pageModel(): PageModel
+    {
+        return $this->pages ??= new PageModel();
     }
 
     public function about(): string
@@ -51,7 +111,30 @@ class Pages extends BaseController
 
     public function news(): string
     {
-        return $this->page('news', 'Latest News', 'News from TI Machine Building.');
+        $content = require APPPATH . 'Data/Content.php';
+        $content['news'] = $this->newsArticles();
+
+        return $this->page('news', 'Latest News', 'News from TI Machine Building.', ['c' => $content]);
+    }
+
+    /**
+     * Articles from the CMS, falling back to App\Data\Content when the
+     * database is unreachable or holds nothing published.
+     *
+     * @return list<array<string,mixed>>
+     */
+    private function newsArticles(): array
+    {
+        try {
+            $articles = (new NewsModel())->listing();
+            if ($articles !== []) {
+                return $articles;
+            }
+        } catch (\Throwable $e) {
+            log_message('error', 'News lookup failed, using Content defaults: ' . $e->getMessage());
+        }
+
+        return (require APPPATH . 'Data/Content.php')['news'] ?? [];
     }
 
     public function disclaimer(): string
