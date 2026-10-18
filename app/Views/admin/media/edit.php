@@ -10,7 +10,7 @@ $val = static fn (string $f, string $fallback) => (string) old($f, $fallback);
     <h1>Edit photo</h1>
     <p class="page-sub"><code><?= esc($item['key']) ?></code></p>
   </div>
-  <a href="<?= esc($backUrl, 'attr') ?>" class="btn btn-secondary">← Back to Media Library</a>
+  <a href="<?= esc(admin_url($backUrl), 'attr') ?>" class="btn btn-secondary">← Back to Media Library</a>
 </div>
 
 <?php if (! empty($errors)): ?>
@@ -31,7 +31,7 @@ $val = static fn (string $f, string $fallback) => (string) old($f, $fallback);
     <?php endif ?>
     <figcaption><?= (int) $item['width'] ?> × <?= (int) $item['height'] ?> pixels</figcaption>
 
-    <form method="POST" action="/admin/media/replace/<?= (int) $item['id'] ?>" enctype="multipart/form-data" class="replace-form" style="margin-top:.75rem">
+    <form method="POST" action="<?= admin_url('media/replace/') ?><?= (int) $item['id'] ?>" enctype="multipart/form-data" class="replace-form" style="margin-top:.75rem">
       <?= csrf_field() ?>
       <label class="btn btn-secondary">Replace photo…<input type="file" name="file" accept=".jpg,.jpeg,.png,.webp" data-autosubmit-file hidden></label>
       <p class="field-hint">Keeps the same name, so every page using it shows the new picture.</p>
@@ -39,7 +39,7 @@ $val = static fn (string $f, string $fallback) => (string) old($f, $fallback);
   </figure>
 
   <div class="card form-card card-pad">
-    <form method="POST" action="/admin/media/edit/<?= (int) $item['id'] ?>">
+    <form method="POST" action="<?= admin_url('media/edit/') ?><?= (int) $item['id'] ?>">
       <?= csrf_field() ?>
 
       <div class="field">
@@ -78,7 +78,7 @@ $val = static fn (string $f, string $fallback) => (string) old($f, $fallback);
           <ul class="media-uses">
             <?php foreach ($item['uses'] as $u): ?>
               <li class="<?= $u['blocks'] ? 'is-live' : 'is-info' ?>">
-                <?= $u['link'] ? '<a href="' . esc($u['link'], 'attr') . '">' . esc($u['label']) . '</a>' : esc($u['label']) ?>
+                <?= $u['link'] ? '<a href="' . esc(admin_url($u['link']), 'attr') . '">' . esc($u['label']) . '</a>' : esc($u['label']) ?>
               </li>
             <?php endforeach ?>
           </ul>
@@ -87,7 +87,7 @@ $val = static fn (string $f, string $fallback) => (string) old($f, $fallback);
 
       <div class="btn-row">
         <button type="submit" class="btn btn-primary">Save changes</button>
-        <a href="<?= esc($backUrl, 'attr') ?>" class="btn btn-secondary">Cancel</a>
+        <a href="<?= esc(admin_url($backUrl), 'attr') ?>" class="btn btn-secondary">Cancel</a>
       </div>
     </form>
   </div>

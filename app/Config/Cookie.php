@@ -104,4 +104,18 @@ class Cookie extends BaseConfig
      * @see https://tools.ietf.org/html/rfc2616#section-2.2
      */
     public bool $raw = false;
+
+    /**
+     * Cookies (the admin session included) are only sent over https when the
+     * site runs on https, so a session cannot leak over a plain-http request.
+     * cookie.secure in .env still wins.
+     */
+    public function __construct()
+    {
+        parent::__construct();
+
+        if (! $this->secure && str_starts_with(config('App')->baseURL, 'https://')) {
+            $this->secure = true;
+        }
+    }
 }

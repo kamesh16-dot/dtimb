@@ -49,7 +49,7 @@ $hasImages = false;
 ?>
 <div class="page-header">
   <h1><?= esc($editing ? 'Edit item' : 'Add to ' . $list->label()) ?></h1>
-  <a href="<?= esc($backUrl, 'attr') ?>" class="btn btn-secondary">← Back to <?= esc($list->label()) ?></a>
+  <a href="<?= esc(admin_url($backUrl), 'attr') ?>" class="btn btn-secondary">← Back to <?= esc($list->label()) ?></a>
 </div>
 
 <p style="margin:0 0 1rem;font-size:.78rem;color:var(--dim)">
@@ -66,7 +66,7 @@ $hasImages = false;
 <?php endif ?>
 
 <div class="card form-card card-pad">
-  <form method="POST" action="<?= esc($action, 'attr') ?>">
+  <form method="POST" action="<?= esc(admin_url($action), 'attr') ?>">
     <?= csrf_field() ?>
 
     <?php foreach ($rows as $names): ?>
@@ -132,7 +132,7 @@ $hasImages = false;
 
     <div class="btn-row">
       <button type="submit" class="btn btn-primary"><?= $editing ? 'Save changes' : 'Add item' ?></button>
-      <a href="<?= esc($backUrl, 'attr') ?>" class="btn btn-secondary">Cancel</a>
+      <a href="<?= esc(admin_url($backUrl), 'attr') ?>" class="btn btn-secondary">Cancel</a>
     </div>
   </form>
 </div>

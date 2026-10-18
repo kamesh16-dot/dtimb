@@ -39,9 +39,9 @@ The dashboard shows:
 
 **Site → Settings** lets you change:
 - Site name, tagline, email address, LinkedIn URL, footer tagline
-- Favicon — upload a square PNG (at least 180 × 180 px) and click **Generate favicons** to create `.ico`, `favicon-32.png`, and `apple-touch-icon.png`
 
-Click **Save** after every change. Changes take effect on the next public page load (or immediately after clearing cache with `php spark cms:clear-cache`).
+Click **Save** after every change. Changes show on the website straight away.
+(The site icon — favicon — is a file on the server; ask your developer to change it.)
 
 ---
 

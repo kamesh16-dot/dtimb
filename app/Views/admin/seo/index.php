@@ -66,7 +66,7 @@ $pct = $summary['total'] > 0 ? (int) round($summary['clean'] / $summary['total']
         <strong><?= (int) $photos['missing'] ?> of <?= (int) $photos['total'] ?> photos have no description.</strong>
         A one-sentence description helps your photos appear in Google Images, and is read aloud to blind visitors.
       </span>
-      <a href="/admin/media?show=nodesc" class="btn btn-secondary">Add descriptions</a>
+      <a href="<?= admin_url('media?show=nodesc') ?>" class="btn btn-secondary">Add descriptions</a>
     </div>
   <?php endif ?>
 
@@ -107,7 +107,7 @@ $pct = $summary['total'] > 0 ? (int) round($summary['clean'] / $summary['total']
               <td>
                 <?php $fixable = array_filter($r['problems'], static fn ($p) => empty($p['locked'])) !== []; ?>
                 <?php if ($r['editUrl'] !== null): ?>
-                  <a href="<?= esc($r['editUrl']) ?>" class="btn btn-secondary" style="padding:.3rem .7rem;font-size:.75rem"><?= $fixable ? 'Fix' : 'Edit' ?></a>
+                  <a href="<?= esc(admin_url($r['editUrl']), 'attr') ?>" class="btn btn-secondary" style="padding:.3rem .7rem;font-size:.75rem"><?= $fixable ? 'Fix' : 'Edit' ?></a>
                 <?php endif ?>
               </td>
               <td class="row-more" aria-hidden="true">›</td>
@@ -157,7 +157,7 @@ $pct = $summary['total'] > 0 ? (int) round($summary['clean'] / $summary['total']
         'subtitle' => $r['kind'] . ' · ' . $r['url'],
         'rows'     => $details,
         'actions'  => $r['editUrl'] !== null
-            ? '<a class="btn btn-primary" href="' . esc($r['editUrl'], 'attr') . '">'
+            ? '<a class="btn btn-primary" href="' . esc(admin_url($r['editUrl']), 'attr') . '">'
               . (array_filter($r['problems'], static fn ($p) => empty($p['locked'])) !== [] ? 'Fix this page' : 'Edit') . '</a>'
             : null,
     ]) ?>
@@ -200,7 +200,7 @@ $pct = $summary['total'] > 0 ? (int) round($summary['clean'] / $summary['total']
     <div class="seo-alert">Only admins can change these settings. You can see them here.</div>
   <?php endif ?>
 
-  <form method="POST" action="/admin/seo/save" class="seo-settings">
+  <form method="POST" action="<?= admin_url('seo/save') ?>" class="seo-settings">
     <?= csrf_field() ?>
 
     <section class="card card-pad">

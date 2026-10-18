@@ -25,16 +25,22 @@ class Dashboard extends AdminController
 {
     public function index(): string
     {
+        $isAdmin = $this->isAdmin();
         $inbox   = $this->inbox();
         $content = $this->content();
-        $isAdmin = ($this->adminUser['role'] ?? 'editor') === 'admin';
+
+        // Job applications carry CVs and are admin-only; editors see enquiries.
+        if (! $isAdmin) {
+            $inbox['applicationsNew'] = 0;
+            $inbox['applicationsAll'] = 0;
+        }
 
         return $this->adminView('admin/dashboard', [
             'pageTitle' => 'Dashboard',
             'todo'      => $this->todo($inbox, $content, $isAdmin),
             'sections'  => $this->sections($inbox, $content),
             'tasks'     => $this->tasks($isAdmin),
-            'recent'    => $this->recentMessages(),
+            'recent'    => $this->recentMessages($isAdmin),
             'activity'  => $this->activity(),
         ]);
     }
@@ -280,9 +286,9 @@ class Dashboard extends AdminController
     }
 
     /** The five newest messages across both inbox tabs. */
-    private function recentMessages(): array
+    private function recentMessages(bool $withApplications): array
     {
-        return $this->safely(static function () {
+        return $this->safely(static function () use ($withApplications) {
             $rows = [];
 
             foreach ((new EnquiryModel())->withStatus(null) as $r) {
@@ -295,7 +301,7 @@ class Dashboard extends AdminController
                     'link'   => '/admin/inbox/message/enquiry/' . $r['id'],
                 ];
             }
-            foreach ((new ApplicationModel())->withStatus(null) as $r) {
+            foreach ($withApplications ? (new ApplicationModel())->withStatus(null) : [] as $r) {
                 $rows[] = [
                     'kind'   => 'Job application',
                     'name'   => $r['name'],

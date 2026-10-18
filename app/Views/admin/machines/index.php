@@ -1,6 +1,6 @@
 <div class="page-header">
   <h1>Machines</h1>
-  <a href="/admin/machines/create" class="btn btn-primary">
+  <a href="<?= admin_url('machines/create') ?>" class="btn btn-primary">
     <svg viewBox="0 0 24 24"><path d="M19 11h-6V5h-2v6H5v2h6v6h2v-6h6z"/></svg>
     Add Machine
   </a>
@@ -23,7 +23,7 @@
       </thead>
       <tbody>
         <?php if (empty($rows)): ?>
-          <tr><td colspan="8" style="text-align:center;color:var(--dim);padding:2rem">No machines yet. <a href="/admin/machines/create" style="color:var(--red)">Add one →</a></td></tr>
+          <tr><td colspan="8" style="text-align:center;color:var(--dim);padding:2rem">No machines yet. <a href="<?= admin_url('machines/create') ?>" style="color:var(--red)">Add one →</a></td></tr>
         <?php else: ?>
           <?php foreach ($rows as $r): ?>
           <tr data-drawer="machine-<?= $r['id'] ?>" tabindex="0" aria-expanded="false"
@@ -46,7 +46,7 @@
             </td>
             <td>
               <?php if (! $r['deleted_at']): ?>
-                <a href="/admin/machines/edit/<?= $r['id'] ?>" class="btn btn-secondary" style="padding:.3rem .7rem;font-size:.75rem">Edit</a>
+                <a href="<?= admin_url('machines/edit/') ?><?= $r['id'] ?>" class="btn btn-secondary" style="padding:.3rem .7rem;font-size:.75rem">Edit</a>
               <?php endif ?>
             </td>
             <td class="row-more" aria-hidden="true">›</td>
@@ -65,14 +65,14 @@
   $deleted = ! empty($r['deleted_at']);
 
   if ($deleted) {
-      $actions = '<form method="POST" action="/admin/machines/restore/' . $r['id'] . '">' . csrf_field()
+      $actions = '<form method="POST" action="' . admin_url('machines/restore/') . $r['id'] . '">' . csrf_field()
           . '<button type="submit" class="btn btn-primary">Restore</button></form>';
   } else {
-      $actions = '<a class="btn btn-primary" href="/admin/machines/edit/' . $r['id'] . '">Edit</a>'
+      $actions = '<a class="btn btn-primary" href="' . admin_url('machines/edit/') . $r['id'] . '">Edit</a>'
           . ($r['is_published']
               ? '<a class="btn btn-secondary" href="' . esc(base_url('machines/' . $r['slug']), 'attr') . '" target="_blank" rel="noopener">View on website ↗</a>'
               : '')
-          . '<form method="POST" action="/admin/machines/delete/' . $r['id'] . '">' . csrf_field()
+          . '<form method="POST" action="' . admin_url('machines/delete/') . $r['id'] . '">' . csrf_field()
           . '<button type="submit" class="btn btn-danger" data-confirm="Delete \'' . esc($r['name'], 'attr') . '\'? It will stop appearing on the website.">Delete</button></form>';
   }
 

@@ -7,7 +7,7 @@ $resubmit = ! empty($errors);
 ?>
 <div class="page-header">
   <h1><?= esc($pageTitle) ?></h1>
-  <a href="/admin/users" class="btn btn-secondary">← Back</a>
+  <a href="<?= admin_url('users') ?>" class="btn btn-secondary">← Back</a>
 </div>
 
 <?php if (! empty($errors)): ?>
@@ -20,7 +20,7 @@ $resubmit = ! empty($errors);
 <?php endif ?>
 
 <div class="card form-card card-pad">
-  <form method="POST" action="/admin/users/<?= $editing ? 'edit/' . $row['id'] : 'create' ?>">
+  <form method="POST" action="<?= admin_url('users/') ?><?= $editing ? 'edit/' . $row['id'] : 'create' ?>">
     <?= csrf_field() ?>
     <div class="field-row">
       <div class="field">
@@ -82,7 +82,7 @@ $resubmit = ! empty($errors);
 
     <div class="btn-row">
       <button type="submit" class="btn btn-primary"><?= $editing ? 'Save account' : 'Create user' ?></button>
-      <a href="/admin/users" class="btn btn-secondary">Cancel</a>
+      <a href="<?= admin_url('users') ?>" class="btn btn-secondary">Cancel</a>
     </div>
   </form>
 </div>
@@ -94,7 +94,7 @@ $resubmit = ! empty($errors);
       Use this when someone is locked out or has forgotten their password. They will be asked to
       choose their own at the next sign-in.
     </p>
-    <form method="POST" action="/admin/users/password/<?= $row['id'] ?>">
+    <form method="POST" action="<?= admin_url('users/password/') ?><?= $row['id'] ?>">
       <?= csrf_field() ?>
       <div class="field">
         <label>New password</label>

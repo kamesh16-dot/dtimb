@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Libraries\CmsCache;
 use CodeIgniter\Model;
 
 /**
@@ -74,7 +75,7 @@ class PageModel extends Model
             return $this->byKeyCache;
         }
 
-        $rows = $this->where('is_published', 1)->findAll();
+        $rows = CmsCache::remember('pages', fn () => $this->where('is_published', 1)->findAll());
 
         return $this->byKeyCache = array_column($rows, null, 'key');
     }

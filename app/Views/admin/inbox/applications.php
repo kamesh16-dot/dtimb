@@ -38,7 +38,7 @@
   <?php
   $hasCv = $model->cvFile($r) !== null;
   $cv    = $hasCv
-      ? '<a class="btn btn-secondary" href="/admin/inbox/cv/' . $r['id'] . '">Download CV</a>'
+      ? '<a class="btn btn-secondary" href="' . admin_url('inbox/cv/') . $r['id'] . '">Download CV</a>'
       : '<span class="pill pill-orange">The file is no longer on the server</span>';
   ?>
   <?= view('admin/partials/drawer', [
@@ -54,7 +54,7 @@
           ['label' => 'CV',         'value' => $cv, 'type' => 'html'],
           ['label' => 'Status',     'value' => match ($r['status']) { 'new' => ['New — not opened yet', 'red'], 'archived' => ['Archived', 'grey'], default => ['Read', 'green'] }, 'type' => 'pill'],
       ],
-      'actions' => view('admin/inbox/_drawer_actions', ['type' => 'application', 'row' => $r]),
+      'actions' => view('admin/inbox/_drawer_actions', ['type' => 'application', 'row' => $r, 'adminUser' => $adminUser]),
   ]) ?>
 <?php endforeach ?>
 <?= view('admin/partials/pagination', ['pager' => $pager, 'noun' => 'applications', 'one' => 'application']) ?>

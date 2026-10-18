@@ -149,7 +149,7 @@ if ($d['galleries']) { $nav['gallery'] = 'In the field'; }
     <?php endforeach; else: foreach ($d['features']['items'] as $i => $html): ?>
       <li class="pg-feature" data-spot data-reveal style="--d:<?= ($i % 3) * 90 ?>ms">
         <b class="num"><?= sprintf('%02d', $i + 1) ?></b>
-        <p><?= $html /* trusted: generated from the spec sheets, only <strong> allowed */ ?></p>
+        <p><?= safe_inline($html) ?></p>
       </li>
     <?php endforeach; endif; ?>
   </ul>
@@ -184,7 +184,7 @@ if ($d['galleries']) { $nav['gallery'] = 'In the field'; }
                 <div class="pg-stage-text">
                   <h4><?= esc($g['title']) ?></h4>
                   <ul class="pg-bullets">
-                    <?php foreach ($g['items'] as $ii => $it): ?><li style="--i:<?= $ii ?>"><?= $it /* trusted markup from ProductDetails */ ?></li><?php endforeach; ?>
+                    <?php foreach ($g['items'] as $ii => $it): ?><li style="--i:<?= $ii ?>"><?= safe_inline($it) ?></li><?php endforeach; ?>
                   </ul>
                 </div>
               </div>

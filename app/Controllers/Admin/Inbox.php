@@ -47,12 +47,16 @@ class Inbox extends AdminController
             'rows'      => $this->enquiries->withStatus($status, $pager->perPage, $pager->offset),
             'counts'    => $counts,
             'pager'     => $pager,
-            'otherNew'  => $this->applications->counts()['new'] ?? 0,
+            // Editors never see applications, so no count for them either.
+            'otherNew'  => $this->isAdmin() ? ($this->applications->counts()['new'] ?? 0) : 0,
         ]);
     }
 
     public function applications(): string
     {
+        // Applications carry CVs — personal data — so only admins see them.
+        $this->requireRole('admin');
+
         $status = $this->status();
         $counts = $this->applications->counts();
         $pager  = $this->listPage($counts[$status ?? 'all'] ?? 0);
@@ -73,6 +77,7 @@ class Inbox extends AdminController
     public function show(string $type, int $id): string
     {
         [$model, $view] = $this->target($type);
+        $this->requireAdminFor($type);
 
         $row = $model->find($id);
         if ($row === null) {
@@ -99,6 +104,7 @@ class Inbox extends AdminController
     public function status_(string $type, int $id, string $status): RedirectResponse
     {
         [$model] = $this->target($type);
+        $this->requireAdminFor($type);
 
         if ($model->find($id) === null) {
             throw PageNotFoundException::forPageNotFound();
@@ -133,6 +139,8 @@ class Inbox extends AdminController
      */
     public function cv(int $id)
     {
+        $this->requireRole('admin');
+
         $row = $this->applications->find($id);
         if ($row === null) {
             throw PageNotFoundException::forPageNotFound();
@@ -151,7 +159,40 @@ class Inbox extends AdminController
         return $this->response->download($file, null)->setFileName($name);
     }
 
+    /**
+     * Remove a message for good — with its CV, for an application. Admins
+     * only. People can ask for their details to be deleted, and nothing here
+     * needs keeping once it has been dealt with.
+     */
+    public function delete(string $type, int $id): RedirectResponse
+    {
+        $this->requireRole('admin');
+        [$model] = $this->target($type);
+
+        $row = $model->find($id);
+        if ($row === null) {
+            throw PageNotFoundException::forPageNotFound();
+        }
+
+        if ($type === 'application' && ($file = $this->applications->cvFile($row)) !== null) {
+            @unlink($file);
+        }
+        $model->delete($id);
+        $this->audit('inbox_delete', $type . ' from ' . $row['name'], $id, 'inbox');
+
+        return $this->toList($this->inboxPath($type))
+            ->with('success', ($type === 'application' ? 'Application and CV' : 'Message') . ' deleted.');
+    }
+
     // ── Internals ─────────────────────────────────────────────────────────────
+
+    /** Applications and CVs are admin-only; enquiries are open to editors. */
+    private function requireAdminFor(string $type): void
+    {
+        if ($type === 'application') {
+            $this->requireRole('admin');
+        }
+    }
 
     /** The requested filter, or null for "all". */
     private function status(): ?string

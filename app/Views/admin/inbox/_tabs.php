@@ -1,17 +1,19 @@
 <?php
 /** @var string $tab  @var ?string $status  @var array $counts  @var int $otherNew */
-$base = $tab === 'applications' ? '/admin/inbox/applications' : '/admin/inbox';
+$base = $tab === 'applications' ? admin_url('inbox/applications') : admin_url('inbox');
 $filters = ['new' => 'New', 'read' => 'Read', 'archived' => 'Archived', '' => 'All'];
 ?>
 <div class="page-header">
   <h1>Inbox</h1>
   <div style="display:flex;gap:.5rem">
-    <a href="/admin/inbox" class="btn <?= $tab === 'enquiries' ? 'btn-primary' : 'btn-secondary' ?>">
+    <a href="<?= admin_url('inbox') ?>" class="btn <?= $tab === 'enquiries' ? 'btn-primary' : 'btn-secondary' ?>">
       Enquiries<?= $tab !== 'enquiries' && $otherNew > 0 ? ' (' . (int) $otherNew . ')' : '' ?>
     </a>
-    <a href="/admin/inbox/applications" class="btn <?= $tab === 'applications' ? 'btn-primary' : 'btn-secondary' ?>">
+    <?php if ((session('admin_user')['role'] ?? '') === 'admin'): // applications carry CVs: admins only ?>
+    <a href="<?= admin_url('inbox/applications') ?>" class="btn <?= $tab === 'applications' ? 'btn-primary' : 'btn-secondary' ?>">
       Applications<?= $tab !== 'applications' && $otherNew > 0 ? ' (' . (int) $otherNew . ')' : '' ?>
     </a>
+    <?php endif ?>
   </div>
 </div>
 

@@ -91,38 +91,16 @@ class SeoAudit
             foreach ($machines->published() as $m) {
                 $slug    = (string) $m['slug'];
                 $details = $machines->details($slug) ?? [];
-                $stored  = json_decode((string) ($m['details_json'] ?? ''), true);
-
-                // A machine's description is its stored product-page tagline
-                // when there is one, and only otherwise its summary — which is
-                // the field the machine form edits. Say so, rather than send
-                // someone to a form that cannot change it.
-                $locked = is_array($stored) && trim((string) ($stored['tagline'] ?? '')) !== '';
-                $note   = $locked
-                    ? 'The title is the machine’s name followed by “| ' . $site->name . '”. The description comes from the machine’s full product page, which cannot be edited in the CMS yet.'
-                    : 'The title is the machine’s name followed by “| ' . $site->name . '”. The description is the machine’s summary.';
-
-                $row = $this->row(
+                $rows[] = $this->row(
                     '/machines/' . $slug,
                     $m['name'],
                     'Machine',
                     $m['name'] . ' | ' . $site->name,
                     (string) ($details['tagline'] ?? ''),
                     '/admin/machines/edit/' . $m['id'],
-                    $note
+                    'The title is the machine’s name followed by “| ' . $site->name . '”. The description is the machine’s '
+                    . '“Search description” on its edit form, or its summary when that is left blank.'
                 );
-
-                if ($locked) {
-                    $row['lockedDescription'] = true;
-                    foreach ($row['problems'] as $i => $p) {
-                        if ($p['part'] === 'description') {
-                            $row['problems'][$i]['tip']    = 'This text is part of the product page content, which the CMS cannot edit yet. Ask your developer to shorten or change it.';
-                            $row['problems'][$i]['locked'] = true;
-                        }
-                    }
-                }
-
-                $rows[] = $row;
             }
         } catch (\Throwable $e) {
             log_message('error', 'SEO audit could not read machines: ' . $e->getMessage());
@@ -145,8 +123,6 @@ class SeoAudit
             'note'        => $note,
             'problems'    => $this->problems($title, $description),
             'issues'      => [],
-            // True when the description cannot be changed through the CMS.
-            'lockedDescription' => false,
         ];
     }
 
@@ -204,10 +180,7 @@ class SeoAudit
             foreach ($rows as $i => $r) {
                 $value = mb_strtolower(trim($r[$field]));
                 if ($value !== '' && ($seen[$value] ?? 0) > 1) {
-                    $locked = $field === 'description' && ! empty($r['lockedDescription']);
-                    $rows[$i]['problems'][] = ['part' => $field, 'text' => 'Another page uses exactly the same ' . $word . '.',
-                        'tip' => $locked ? 'This text is part of the product page content, which the CMS cannot edit yet. Ask your developer to change it.' : $tip]
-                        + ($locked ? ['locked' => true] : []);
+                    $rows[$i]['problems'][] = ['part' => $field, 'text' => 'Another page uses exactly the same ' . $word . '.', 'tip' => $tip];
                 }
             }
         }

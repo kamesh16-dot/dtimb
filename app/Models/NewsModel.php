@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Libraries\CmsCache;
 use CodeIgniter\Model;
 
 /**
@@ -80,10 +81,10 @@ class NewsModel extends Model
     /** Live articles, newest first. */
     public function published(): array
     {
-        return $this->publishedCache ??= $this->where('is_published', 1)
+        return $this->publishedCache ??= CmsCache::remember('news_published', fn () => $this->where('is_published', 1)
                                               ->orderBy('published_on', 'DESC')
                                               ->orderBy('sort_order', 'ASC')
-                                              ->findAll();
+                                              ->findAll());
     }
 
     /**
@@ -130,10 +131,10 @@ class NewsModel extends Model
             return [];
         }
 
-        $rows = $this->db->table('news_gallery')
+        $rows = CmsCache::remember('news_gallery_' . md5(implode(',', $articleIds)), fn () => $this->db->table('news_gallery')
                          ->whereIn('article_id', $articleIds)
                          ->orderBy('sort_order', 'ASC')->orderBy('id', 'ASC')
-                         ->get()->getResultArray();
+                         ->get()->getResultArray());
 
         $out = [];
         foreach ($rows as $g) {

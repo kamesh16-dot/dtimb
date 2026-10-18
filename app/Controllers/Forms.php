@@ -19,6 +19,15 @@ use CodeIgniter\HTTP\RedirectResponse;
  */
 class Forms extends BaseController
 {
+    /** Faster than this from opening the page to sending is not a person. */
+    private const MIN_SECONDS_TO_FILL = 3;
+
+    /** Submissions kept per connection: [how many, per seconds]. */
+    private const LIMITS = [
+        'contact' => [5, 600],
+        'career'  => [3, 600],
+    ];
+
     public function contact(): RedirectResponse
     {
         $back = base_url('contact') . '#enquiry';
@@ -56,8 +65,30 @@ class Forms extends BaseController
             return redirect()->to($back)->with('form_ok', $kind);
         }
 
+        // When the form was opened (partials/form_notes). No usable stamp —
+        // a very old page, or a post made without loading the form — gets a
+        // polite request to send again rather than a silent loss. A reply
+        // within seconds of opening is a bot: pretend success, keep nothing.
+        $age = form_stamp_age((string) $this->request->getPost('form_ts'));
+        if ($age === null) {
+            return redirect()->to($back)->withInput()
+                ->with('errors', ['form' => 'Sorry, that did not go through. Please press Send again.']);
+        }
+        if ($age < self::MIN_SECONDS_TO_FILL) {
+            return redirect()->to($back)->with('form_ok', $kind);
+        }
+
         if (! $this->validate($rules)) {
             return redirect()->to($back)->withInput()->with('errors', $this->validator->getErrors());
+        }
+
+        // A limit per connection, counted only for submissions that would be
+        // kept, so a visitor correcting a typo is never caught by it. It stops
+        // one machine flooding the inbox or filling the disk with CVs.
+        [$capacity, $window] = self::LIMITS[$kind];
+        if (service('throttler')->check('form-' . $kind . '-' . md5((string) $this->request->getIPAddress()), $capacity, $window) === false) {
+            return redirect()->to($back)->withInput()
+                ->with('errors', ['form' => 'You have sent several of these in the last few minutes. Please wait a little and try again, or email us directly.']);
         }
 
         $data = [];

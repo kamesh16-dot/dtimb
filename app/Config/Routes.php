@@ -33,7 +33,10 @@ $routes->group('admin', static function ($routes) {
     // Auth — no adminauth filter
     $routes->get('login',            'Admin\Auth::login');
     $routes->post('login',           'Admin\Auth::loginPost', ['filter' => 'csrf']);
-    $routes->get('logout',           'Admin\Auth::logout');
+    // Signing out changes state, so it is a POST with a CSRF token. A stray GET
+    // (an old bookmark) just goes back to the admin.
+    $routes->post('logout',          'Admin\Auth::logout', ['filter' => 'csrf']);
+    $routes->get('logout', static fn () => redirect()->to('/admin'));
     $routes->get('change-password',  'Admin\Auth::changePassword');
     $routes->post('change-password', 'Admin\Auth::changePasswordPost', ['filter' => 'csrf']);
 
@@ -98,6 +101,7 @@ $routes->group('admin', static function ($routes) {
         $routes->get('inbox/message/(:segment)/(:num)',           'Admin\Inbox::show/$1/$2');
         $routes->post('inbox/message/(:segment)/(:num)/(:alpha)', 'Admin\Inbox::status_/$1/$2/$3', ['filter' => 'csrf']);
         $routes->post('inbox/note/(:num)',           'Admin\Inbox::note/$1',  ['filter' => 'csrf']);
+        $routes->post('inbox/delete/(:segment)/(:num)', 'Admin\Inbox::delete/$1/$2', ['filter' => 'csrf']);
         $routes->get('inbox/cv/(:num)',              'Admin\Inbox::cv/$1');
 
         // SEO

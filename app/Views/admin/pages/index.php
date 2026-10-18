@@ -27,7 +27,7 @@
               <td style="font-size:.75rem;color:var(--dim)">
                 <?= $desc !== '' ? '<span class="cell-clip">' . esc($desc) . '</span>' : '<span class="pill pill-orange">Not set</span>' ?>
               </td>
-              <td><a href="/admin/pages/edit/<?= esc($r['key'], 'url') ?>" class="btn btn-secondary" style="padding:.3rem .7rem;font-size:.75rem">Edit</a></td>
+              <td><a href="<?= admin_url('pages/edit/') ?><?= esc($r['key'], 'url') ?>" class="btn btn-secondary" style="padding:.3rem .7rem;font-size:.75rem">Edit</a></td>
               <td class="row-more" aria-hidden="true">›</td>
             </tr>
           <?php endforeach ?>
@@ -57,7 +57,7 @@
           ['label' => 'Content blocks', 'value' => array_map(static fn ($b) => ucfirst(str_replace('_', ' ', (string) $b)), $blocks), 'type' => 'lines'],
           ['label' => 'Last changed', 'value' => ! empty($r['updated_at']) ? date('d M Y, H:i', strtotime((string) $r['updated_at'])) : null],
       ],
-      'actions' => '<a class="btn btn-primary" href="/admin/pages/edit/' . esc($r['key'], 'url') . '">Edit</a>'
+      'actions' => '<a class="btn btn-primary" href="' . admin_url('pages/edit/') . esc($r['key'], 'url') . '">Edit</a>'
                  . '<a class="btn btn-secondary" href="' . esc(base_url($path), 'attr') . '" target="_blank" rel="noopener">View on website ↗</a>',
   ]) ?>
 <?php endforeach ?>

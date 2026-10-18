@@ -34,9 +34,15 @@ abstract class AdminController extends BaseController
         return view('admin/layout', $data);
     }
 
-    /** Log an action to the audit_log table */
+    /**
+     * Log an action to the audit_log table. Every save in the admin comes
+     * through here, so it is also where the public site's content cache is
+     * cleared — an edit shows on the site straight away.
+     */
     protected function audit(string $action, string $summary = '', ?int $entityId = null, string $entity = ''): void
     {
+        \App\Libraries\CmsCache::forget();
+
         try {
             db_connect()->table('audit_log')->insert([
                 'user_id'    => $this->adminUser['id'] ?? 0,
@@ -52,6 +58,11 @@ abstract class AdminController extends BaseController
             // audit failure must never break the request
             log_message('error', 'Audit write failed: ' . $e->getMessage());
         }
+    }
+
+    protected function isAdmin(): bool
+    {
+        return ($this->adminUser['role'] ?? 'editor') === 'admin';
     }
 
     /** Abort with 403 if user doesn't have required role */

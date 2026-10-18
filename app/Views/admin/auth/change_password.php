@@ -31,7 +31,7 @@ input:focus{outline:none;border-color:#dc2626}
       <div class="alert"><?= esc($error) ?></div>
     <?php endif ?>
 
-    <form method="POST" action="/admin/change-password">
+    <form method="POST" action="<?= admin_url('change-password') ?>">
       <?= csrf_field() ?>
       <div class="field">
         <label for="password">New password</label>

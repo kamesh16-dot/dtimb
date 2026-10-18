@@ -115,7 +115,7 @@ if ($urgent > 0) {
               <span><?= esc($t['why']) ?></span>
             </div>
             <?php if (! empty($t['link'])): ?>
-              <a class="btn <?= $t['level'] === 'urgent' ? 'btn-primary' : 'btn-secondary' ?> db-todo-btn" href="<?= esc($t['link'], 'attr') ?>">
+              <a class="btn <?= $t['level'] === 'urgent' ? 'btn-primary' : 'btn-secondary' ?> db-todo-btn" href="<?= esc(admin_url($t['link']), 'attr') ?>">
                 <?= esc($t['action']) ?>
               </a>
             <?php endif ?>
@@ -134,7 +134,7 @@ if ($urgent > 0) {
 
     <div class="db-sections">
       <?php foreach ($sections as $s): ?>
-        <a class="db-card" href="<?= esc($s['link'], 'attr') ?>">
+        <a class="db-card" href="<?= esc(admin_url($s['link']), 'attr') ?>">
           <div class="db-card-top">
             <span class="db-ic db-ic--plain"><?= $icon($s['icon']) ?></span>
             <span class="db-card-num"><?= (int) $s['count'] ?></span>
@@ -161,7 +161,7 @@ if ($urgent > 0) {
 
     <div class="db-tasks">
       <?php foreach ($tasks as $t): ?>
-        <a class="db-task" href="<?= esc($t['link'], 'attr') ?>">
+        <a class="db-task" href="<?= esc(admin_url($t['link']), 'attr') ?>">
           <span class="db-ic db-ic--plain"><?= $icon($t['icon']) ?></span>
           <span>
             <strong><?= esc($t['title']) ?></strong>
@@ -179,9 +179,9 @@ if ($urgent > 0) {
       <div class="db-head db-head--row">
         <div>
           <h2 id="db-msgs">Latest messages</h2>
-          <p>From the Contact and Careers forms.</p>
+          <p><?= ($adminUser['role'] ?? '') === 'admin' ? 'From the Contact and Careers forms.' : 'From the Contact form.' ?></p>
         </div>
-        <a class="db-link" href="/admin/inbox">Open inbox <?= $icon('arrow') ?></a>
+        <a class="db-link" href="<?= admin_url('inbox') ?>">Open inbox <?= $icon('arrow') ?></a>
       </div>
       <div class="card">
         <?php if (empty($recent)): ?>
@@ -190,7 +190,7 @@ if ($urgent > 0) {
           <ul class="db-rows">
             <?php foreach ($recent as $m): ?>
               <li>
-                <a class="db-row" href="<?= esc($m['link'], 'attr') ?>">
+                <a class="db-row" href="<?= esc(admin_url($m['link']), 'attr') ?>">
                   <span class="db-row-main">
                     <strong<?= $m['new'] ? ' class="is-new"' : '' ?>><?= esc($m['name']) ?></strong>
                     <?php if ($m['new']): ?><span class="pill pill-red">New</span><?php endif ?>

@@ -47,7 +47,7 @@
           ['label' => 'Status',   'value' => match ($r['status']) { 'new' => ['New — not opened yet', 'red'], 'archived' => ['Archived', 'grey'], default => ['Read', 'green'] }, 'type' => 'pill'],
           ['label' => 'Internal note', 'value' => $r['notes'] ?? null, 'type' => 'long'],
       ],
-      'actions' => view('admin/inbox/_drawer_actions', ['type' => 'enquiry', 'row' => $r]),
+      'actions' => view('admin/inbox/_drawer_actions', ['type' => 'enquiry', 'row' => $r, 'adminUser' => $adminUser]),
   ]) ?>
 <?php endforeach ?>
 <?= view('admin/partials/pagination', ['pager' => $pager, 'noun' => 'enquiries', 'one' => 'enquiry']) ?>

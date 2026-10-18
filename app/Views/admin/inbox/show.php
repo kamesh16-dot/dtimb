@@ -1,8 +1,8 @@
 <?php
 /** @var string $type  @var array $row */
 $isApplication = $type === 'application';
-$backUrl = $isApplication ? '/admin/inbox/applications' : '/admin/inbox';
-$base    = '/admin/inbox/message/' . $type . '/' . $row['id'];
+$backUrl = $isApplication ? admin_url('inbox/applications') : admin_url('inbox');
+$base    = admin_url('inbox/message/') . $type . '/' . $row['id'];
 
 $detail = $isApplication
     ? ['Email' => $row['email'], 'Phone' => $row['phone'], 'Area' => $row['area'],
@@ -50,7 +50,7 @@ $detail = $isApplication
   <?php if ($isApplication): ?>
     <div style="margin-top:1rem">
       <?php if (! empty($hasCv)): ?>
-        <a href="/admin/inbox/cv/<?= $row['id'] ?>" class="btn btn-secondary">Download CV</a>
+        <a href="<?= admin_url('inbox/cv/') ?><?= $row['id'] ?>" class="btn btn-secondary">Download CV</a>
       <?php else: ?>
         <p style="font-size:.78rem;color:var(--dim)">No CV file is on the server for this application.</p>
       <?php endif ?>
@@ -83,13 +83,19 @@ $detail = $isApplication
       <button type="submit" class="btn btn-secondary">Mark unread</button>
     </form>
     <a href="mailto:<?= esc($row['email'], 'attr') ?>" class="btn btn-primary">Reply by email</a>
+    <?php if (($adminUser['role'] ?? '') === 'admin'): ?>
+      <form method="POST" action="<?= admin_url('inbox/delete/') ?><?= esc($type, 'url') ?>/<?= (int) $row['id'] ?>" style="display:inline">
+        <?= csrf_field() ?>
+        <button type="submit" class="btn btn-danger" data-confirm="Delete this <?= $type === 'application' ? 'application and its CV' : 'message' ?> permanently? This cannot be undone.">Delete</button>
+      </form>
+    <?php endif ?>
   </div>
 </div>
 
 <?php if (! $isApplication): ?>
   <div class="card form-card card-pad" style="margin-top:1rem">
     <h2 style="font-size:.95rem;margin:0 0 .6rem">Internal note</h2>
-    <form method="POST" action="/admin/inbox/note/<?= $row['id'] ?>">
+    <form method="POST" action="<?= admin_url('inbox/note/') ?><?= $row['id'] ?>">
       <?= csrf_field() ?>
       <div class="field">
         <textarea name="notes" rows="4" placeholder="Only visible here. The sender never sees this."><?= esc($row['notes'] ?? '') ?></textarea>

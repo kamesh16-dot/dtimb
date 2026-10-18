@@ -60,6 +60,12 @@ class Machines extends AdminController
     {
         $data = $this->formData();
 
+        [$details, $problem] = $this->pageContent(null);
+        if ($problem !== null) {
+            return $this->backWithErrors(['page_json' => $problem]);
+        }
+        $data['details_json'] = $details;
+
         if (! $this->machines->insert($data)) {
             return $this->backWithErrors($this->machines->errors());
         }
@@ -82,6 +88,12 @@ class Machines extends AdminController
         // the data it is given, so the id has to travel with it; it is not in
         // allowedFields, so it never reaches the UPDATE statement.
         $data = ['id' => $id] + $this->formData();
+
+        [$details, $problem] = $this->pageContent($row['details_json'] ?? null);
+        if ($problem !== null) {
+            return $this->backWithErrors(['page_json' => $problem]);
+        }
+        $data['details_json'] = $details;
 
         if (! $this->machines->update($id, $data)) {
             return $this->backWithErrors($this->machines->errors());
@@ -127,9 +139,14 @@ class Machines extends AdminController
 
     private function form(array $row, string $title): string
     {
+        $stored = json_decode((string) ($row['details_json'] ?? ''), true);
+        $stored = is_array($stored) ? $stored : [];
+
         return $this->adminView('admin/machines/form', [
-            'pageTitle' => $title,
-            'row'       => $row,
+            'pageTitle'   => $title,
+            'row'         => $row,
+            'pageTagline' => (string) ($stored['tagline'] ?? ''),
+            'pageJson'    => $stored === [] ? '' : self::prettyJson($stored),
             'groups'    => $this->machines->groupNames(),
             'visuals'   => MachineModel::VISUALS,
             'sheets'    => $this->specSheets(),
@@ -163,6 +180,53 @@ class Machines extends AdminController
             'show_in_menu' => isset($post['show_in_menu']) ? 1 : 0,
             'is_published' => isset($post['is_published']) ? 1 : 0,
         ];
+    }
+
+    /**
+     * The product-page payload to store, from the two page fields on the form:
+     * the full content as JSON (Advanced) and the search description, which
+     * wins over a tagline inside the JSON. Returns [json or null, problem].
+     *
+     * @return array{0:?string,1:?string}
+     */
+    private function pageContent(?string $storedJson): array
+    {
+        $stored  = json_decode((string) $storedJson, true);
+        $details = is_array($stored) ? $stored : [];
+
+        $posted = $this->request->getPost('page_json');
+        if ($posted !== null && trim((string) $posted) !== trim($details === [] ? '' : self::prettyJson($details))) {
+            $text = trim((string) $posted);
+            if ($text === '') {
+                $details = [];
+            } else {
+                $decoded = json_decode($text, true);
+                if (json_last_error() !== JSON_ERROR_NONE) {
+                    return [null, 'The product page content is not valid JSON (' . json_last_error_msg() . '). Nothing was saved — check for a missing comma or quote.'];
+                }
+                if (! is_array($decoded) || array_is_list($decoded)) {
+                    return [null, 'The product page content must be a JSON object, starting with { and ending with }.'];
+                }
+                $details = $decoded;
+            }
+        }
+
+        $tagline = trim((string) $this->request->getPost('page_tagline'));
+        if (mb_strlen($tagline) > 300) {
+            return [null, 'Keep the search description under 300 characters — Google shows about 160.'];
+        }
+        if ($tagline !== '') {
+            $details['tagline'] = $tagline;
+        } else {
+            unset($details['tagline']); // falls back to the summary
+        }
+
+        return [$details === [] ? null : json_encode($details, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES), null];
+    }
+
+    private static function prettyJson(array $data): string
+    {
+        return (string) json_encode($data, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
     }
 
     /** One past the current highest, so a new machine lands at the end. */

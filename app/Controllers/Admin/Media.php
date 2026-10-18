@@ -440,11 +440,6 @@ class Media extends AdminController
         return $row;
     }
 
-    private function isAdmin(): bool
-    {
-        return ($this->adminUser['role'] ?? 'editor') === 'admin';
-    }
-
     private function usage(?array $rows = null): MediaUsage
     {
         $rows ??= $this->media->allOrdered();

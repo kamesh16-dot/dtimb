@@ -7,7 +7,7 @@ $desc = (string) $val('seo_description');
   <h1><?= esc($pageTitle) ?></h1>
   <div class="actions">
     <a href="<?= esc($viewUrl) ?>" target="_blank" rel="noopener" class="btn btn-secondary">View page</a>
-    <a href="/admin/pages" class="btn btn-secondary">← Back</a>
+    <a href="<?= admin_url('pages') ?>" class="btn btn-secondary">← Back</a>
   </div>
 </div>
 
@@ -21,7 +21,7 @@ $desc = (string) $val('seo_description');
 <?php endif ?>
 
 <div class="card form-card card-pad">
-  <form method="POST" action="/admin/pages/edit/<?= esc($key, 'url') ?>">
+  <form method="POST" action="<?= admin_url('pages/edit/') ?><?= esc($key, 'url') ?>">
     <?= csrf_field() ?>
 
     <div class="field-row">
@@ -84,7 +84,7 @@ $desc = (string) $val('seo_description');
 
     <div class="btn-row">
       <button type="submit" class="btn btn-primary">Save page</button>
-      <a href="/admin/pages" class="btn btn-secondary">Cancel</a>
+      <a href="<?= admin_url('pages') ?>" class="btn btn-secondary">Cancel</a>
     </div>
   </form>
 </div>

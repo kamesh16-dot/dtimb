@@ -34,6 +34,10 @@
         <!-- Directory containing the front controller (index.php) -->
         <const name="PUBLICPATH" value="./public/"/>
         <!-- Use SQLite :memory: for tests (no external DB needed) -->
+        <!-- No logging during tests: the test database starts empty, so every
+             fallback path logs an error, and those went into the live log folder
+             (~80,000 lines a run), burying real problems. -->
+        <env name="logger.threshold" value="0"/>
         <env name="database.tests.DBDriver" value="SQLite3"/>
         <env name="database.tests.database" value=":memory:"/>
         <env name="database.tests.DBPrefix" value="tests_"/>

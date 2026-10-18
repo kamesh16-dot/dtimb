@@ -85,7 +85,7 @@ $rows  = [array_slice($gallery, 0, $half), array_slice($gallery, $half)];
 
   <div class="stats">
     <?php foreach ($site->stats as $i => [$value, $label]): ?>
-      <div data-reveal style="--d:<?= $i * 90 ?>ms"><strong data-count><?= esc($value) ?></strong><span><?= $label /* trusted markup from Config\Site */ ?></span></div>
+      <div data-reveal style="--d:<?= $i * 90 ?>ms"><strong data-count><?= esc($value) ?></strong><span><?= safe_inline($label) ?></span></div>
     <?php endforeach; ?>
   </div>
 </section>

@@ -35,64 +35,31 @@ cd dtimb
 composer install --no-dev --no-security-blocking
 ```
 
-> The `--no-security-blocking` flag bypasses Composer's advisory check for CI4 4.5.x (historical advisories, all mitigated by the CMS security headers and filters already in place).  
+> **Known security advisories.** This build runs CodeIgniter 4.5.8 on PHP 8.1, and
+> `composer audit` reports advisories against it that are fixed only in
+> CodeIgniter 4.7.4+, which needs **PHP 8.2**. `--no-security-blocking` lets the
+> install proceed. Until that upgrade: the affected upload checks are backed by
+> the site's own checks (files are re-encoded, stored outside the web root under
+> random names, and the career form is rate-limited); `deleteBatch()` and the
+> ImageMagick handler are not used. Plan the PHP 8.2 / CodeIgniter 4.7 upgrade —
+> PHP 8.1 no longer receives security fixes.
+>
 > Remove `--no-dev` if you need the test suite.
 
 ### 2c. Configure the environment
 
 ```bash
-cp env .env
+cp .env.example .env
 ```
 
-Edit `.env` and set **all** of the following:
+Edit `.env`. The template explains every value; the ones that matter most:
 
-```ini
-#--------------------------------------------------------------------
-# ENVIRONMENT
-#--------------------------------------------------------------------
-CI_ENVIRONMENT = production
-
-#--------------------------------------------------------------------
-# APP
-#--------------------------------------------------------------------
-app.baseURL = 'https://www.timbindia.com/'
-app.indexPage = ''
-
-#--------------------------------------------------------------------
-# DATABASE
-#--------------------------------------------------------------------
-database.default.hostname = 127.0.0.1
-database.default.database = timb_cms
-database.default.username = timb_user
-database.default.password = STRONG_PASSWORD_HERE
-database.default.DBDriver = MySQLi
-database.default.DBCollat = utf8mb4_unicode_ci
-
-#--------------------------------------------------------------------
-# ENCRYPTION (required for admin session security)
-#--------------------------------------------------------------------
-# Generate with: php spark key:generate
-encryption.key = hex2bin:REPLACE_WITH_GENERATED_KEY
-
-#--------------------------------------------------------------------
-# CMS ADMIN
-#--------------------------------------------------------------------
-# The URL prefix for the admin panel. Default: admin
-# Change to something non-obvious for production.
-cms.adminPrefix = admin
-
-#--------------------------------------------------------------------
-# EMAIL (for form notifications and test-email feature)
-#--------------------------------------------------------------------
-email.protocol    = smtp
-email.SMTPHost    = mail.yourdomain.com
-email.SMTPUser    = noreply@timbindia.com
-email.SMTPPass    = SMTP_PASSWORD_HERE
-email.SMTPPort    = 587
-email.SMTPCrypto  = tls
-email.fromEmail   = noreply@timbindia.com
-email.fromName    = 'TIMB Website'
-```
+| Setting | Why |
+|---|---|
+| `app.baseURL = 'https://www.timbindia.com/'` | **Required.** Every link is built from it. With `https` the site also forces https, sends HSTS and marks cookies secure. If it is missing, links fall back to the request's host name, which a visitor controls — so set it. |
+| `database.default.*` | A dedicated database user, never root. |
+| `encryption.key` | Filled in by the next step. |
+| `email.*` | Without it nobody is emailed when an enquiry arrives (it is still saved in the Inbox). |
 
 ### 2d. Generate the encryption key
 
@@ -100,44 +67,46 @@ email.fromName    = 'TIMB Website'
 php spark key:generate
 ```
 
-This writes `encryption.key = hex2bin:...` into `.env` automatically.
-
-### 2e. Run database migrations
+### 2e. Create the database tables
 
 ```bash
 php spark migrate
 ```
 
-This creates all 19+ tables in one pass. To start fresh:
+Builds every table (CreateCmsSchema and the migrations after it). Safe to run on
+an existing database: tables that exist are left alone.
+
+### 2f. Load the content and create the first admin
 
 ```bash
-php spark migrate:rollback --all
-php spark migrate
+CMS_ADMIN_EMAIL=you@timbindia.com php spark db:seed DatabaseSeeder
 ```
 
-### 2f. Seed content from the static files
+- **Content** comes from `app/Database/Seeds/data/content.json`: machines,
+  pages, news, photos, lists and settings. It only fills an empty database and
+  refuses to run on one that already has machines.
+- **Admin account** — the email above (default `admin@timbindia.com`) and a random
+  password printed **once**. You must choose a new password at the first sign-in.
+  Nothing is created if any account already exists.
+
+Run the two parts on their own with `db:seed ImportExistingContentSeeder` and
+`db:seed AdminUserSeeder`.
+
+To refresh the content file from a live site, export the content tables (see the
+list in the file) to JSON in the same shape — never include users, enquiries or
+applications.
+
+### 2g. Schedule the nightly jobs
+
+See [7. Nightly jobs](#7-nightly-jobs-cron): the backup and `cms:housekeeping`.
+
+### 2h. Check the install
 
 ```bash
-php spark db:seed ImportExistingContentSeeder
+php spark cms:status
 ```
 
-This imports all products, solutions, pages, news, etc. from the original PHP arrays into the DB. It is **idempotent** — running it a second time adds 0 rows.
-
-### 2g. Create the first admin user
-
-```bash
-php spark db:seed AdminUserSeeder
-```
-
-This prints a one-time password to the console. Save it — you will be forced to change it on first login.
-
-### 2h. Delete the static robots.txt
-
-```bash
-rm public/robots.txt
-```
-
-The static file would silently shadow the CMS-generated `/robots.txt` route.
+Every row should say OK. `Site address` warns until `app.baseURL` is an https address.
 
 ---
 
@@ -223,14 +192,14 @@ EOF
 | Key | Required | Description |
 |---|---|---|
 | `CI_ENVIRONMENT` | ✅ | `production` hides errors from visitors |
-| `app.baseURL` | ✅ | Full URL with trailing slash |
-| `app.indexPage` | ✅ | Set to `''` for clean URLs |
+| `app.baseURL` | ✅ | Full https URL with trailing slash. Links, redirects, HSTS and secure cookies all follow from it |
+| `app.allowedHostnames.0` | — | Other host names allowed to build links, only when `app.baseURL` is unset |
+| `app.indexPage` | — | Already `''` (clean URLs). Set `'index.php'` only on a server without URL rewriting |
 | `database.default.*` | ✅ | MariaDB connection details |
 | `encryption.key` | ✅ | 32+ char hex key (use `php spark key:generate`) |
-| `cms.adminPrefix` | ✅ | URL prefix for admin panel (default `admin`) |
 | `email.SMTPHost` | ⚠️ | Without this, form emails are silently skipped |
 | `email.SMTPUser` | ⚠️ | SMTP username |
-| `email.SMTPPass` | ⚠️ | SMTP password (stored encrypted in DB once saved via Settings screen) |
+| `email.SMTPPass` | ⚠️ | SMTP password — kept in `.env` only, never in the database |
 
 ---
 
@@ -240,8 +209,10 @@ EOF
 |---|---|
 | `php spark migrate` | Run all pending migrations |
 | `php spark migrate:rollback` | Roll back last migration batch |
-| `php spark db:seed ImportExistingContentSeeder` | Import legacy static-array content into DB |
-| `php spark db:seed AdminUserSeeder` | Create first admin account (prints password) |
+| `php spark db:seed DatabaseSeeder` | New install: load the content and create the first admin |
+| `php spark db:seed ImportExistingContentSeeder` | Load the content into an empty database only |
+| `php spark db:seed AdminUserSeeder` | Create the first admin account (prints the password once) |
+| `php spark cms:housekeeping` | Delete inbox messages and CVs older than 24 months, orphaned CVs and logs older than 30 days (`--inbox-months`, `--log-days`, `--dry-run`) |
 | `php spark cms:status` | Health check: DB, cache, permissions, SMTP, env |
 | `php spark cms:clear-cache` | Clear page cache, file cache, debugbar files |
 | `php spark cms:clear-cache --all` | Also clear sessions |
@@ -250,12 +221,20 @@ EOF
 
 ---
 
-## 7. Nightly Backup (Recommended Cron)
+## 7. Nightly jobs (cron)
 
 ```bash
-# /etc/cron.d/timb-backup
-0 2 * * * www-data /usr/local/bin/timb-backup.sh >> /var/log/timb-backup.log 2>&1
+# /etc/cron.d/timb
+# Backup first, then tidy up.
+0 2 * * *  www-data /usr/local/bin/timb-backup.sh >> /var/log/timb-backup.log 2>&1
+15 3 * * * www-data php /var/www/dtimb/spark cms:housekeeping >> /var/log/timb-housekeeping.log 2>&1
 ```
+
+`cms:housekeeping` keeps personal data and logs from piling up: inbox messages
+and their CVs go after 24 months (change with `--inbox-months`, or `0` to keep),
+logs after 30 days. Try it first with `--dry-run`.
+
+### Backup script
 
 **`/usr/local/bin/timb-backup.sh`:**
 
@@ -287,11 +266,11 @@ find "$BACKUP" -name "*.gz" -mtime +30 -delete
 
 ## 8. First Login
 
-1. Navigate to `https://www.timbindia.com/<adminPrefix>/login`
-2. Username: `admin` (default), Password: printed by `AdminUserSeeder`
-3. You will be **forced to change your password** immediately
-4. After login, go to **Settings** → verify site name, email, and SMTP settings
-5. Go to **Settings → Favicon** to generate favicon sizes from your logo
+1. Go to `https://www.timbindia.com/admin/login`
+2. Sign in with the email and password printed by `db:seed DatabaseSeeder`
+3. You will be **asked to choose a new password** straight away
+4. Go to **Settings** and check the site name, contact email and links
+5. Add the other people who need access in **Users** — *editor* for content only, *admin* for everything including job applications and CVs
 
 ---
 

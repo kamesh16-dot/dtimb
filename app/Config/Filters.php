@@ -35,6 +35,7 @@ class Filters extends BaseFilters
         'pagecache'     => PageCache::class,
         'performance'   => PerformanceMetrics::class,
         'adminauth'     => \App\Filters\AdminAuth::class,
+        'siteheaders'   => \App\Filters\SecurityHeaders::class,
     ];
 
     /**
@@ -79,7 +80,7 @@ class Filters extends BaseFilters
         ],
         'after' => [
             // 'honeypot',
-            // 'secureheaders',
+            'siteheaders', // CSP, nosniff, frame and referrer policies, HSTS on https
         ],
     ];
 

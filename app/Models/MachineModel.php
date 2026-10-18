@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Libraries\CmsCache;
 use CodeIgniter\Model;
 
 /**
@@ -86,8 +87,8 @@ class MachineModel extends Model
     /** All live machines, in listing order. */
     public function published(): array
     {
-        return $this->publishedCache ??= $this->where('is_published', 1)
-                                              ->orderBy('menu_order', 'ASC')->findAll();
+        return $this->publishedCache ??= CmsCache::remember('machines_published', fn () => $this->where('is_published', 1)
+                                              ->orderBy('menu_order', 'ASC')->findAll());
     }
 
     /**
@@ -123,8 +124,8 @@ class MachineModel extends Model
      */
     public function navMenu(): array
     {
-        $rows = $this->where('is_published', 1)->where('show_in_menu', 1)
-                     ->orderBy('nav_order', 'ASC')->findAll();
+        $rows = CmsCache::remember('machines_menu', fn () => $this->where('is_published', 1)->where('show_in_menu', 1)
+                     ->orderBy('nav_order', 'ASC')->findAll());
 
         $menu = [];
         foreach ($rows as $r) {
@@ -143,7 +144,7 @@ class MachineModel extends Model
      */
     public function details(string $slug): ?array
     {
-        $row = $this->where('slug', $slug)->where('is_published', 1)->first();
+        $row = CmsCache::remember('machine_' . $slug, fn () => $this->where('slug', $slug)->where('is_published', 1)->first() ?? false);
         if (! $row) {
             return null;
         }

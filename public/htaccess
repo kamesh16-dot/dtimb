@@ -21,6 +21,9 @@ Options -Indexes
 	RewriteCond %{REQUEST_URI} (.+)/$
 	RewriteRule ^ %1 [L,R=301]
 
+	# No www / non-www redirect here: the site's address is https://www.timbindia.com
+	# (app.baseURL), and the app itself sends plain-http requests to https.
+
 	# Checks to see if the user is attempting to access a valid file,
 	# such as an image or css document, if this isn't true it sends the
 	# request to the front controller, index.php

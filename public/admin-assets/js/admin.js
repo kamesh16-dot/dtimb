@@ -176,8 +176,10 @@
   // ── "Choose photo" picker ───────────────────────────────────────────
   // Any <input data-media-picker> gets a Choose photo button and a small
   // preview. The library is fetched once, the first time it is needed.
+  // The admin's own address (from the layout), so this works in a subfolder too.
+  const ADMIN = (document.body.dataset.adminUrl || '/admin').replace(/\/$/, '');
   let library = null;
-  const loadLibrary = () => library ??= fetch('/admin/media/library', { credentials: 'same-origin' })
+  const loadLibrary = () => library ??= fetch(ADMIN + '/media/library', { credentials: 'same-origin' })
     .then(r => r.ok ? r.json() : [])
     .catch(() => []);
 
@@ -191,7 +193,7 @@
       '<div class="picker-head"><h2>Choose a photo</h2>' +
       '<input type="search" placeholder="Search photos…" aria-label="Search photos">' +
       '<select aria-label="Folder"><option value="">All folders</option></select>' +
-      '<a class="btn btn-secondary" href="/admin/media" target="_blank" rel="noopener">Upload new ↗</a>' +
+      '<a class="btn btn-secondary" href="' + ADMIN + '/media" target="_blank" rel="noopener">Upload new ↗</a>' +
       '<button type="button" class="btn btn-secondary" data-close aria-label="Close">&times;</button></div>' +
       '<div class="picker-grid" role="list"></div>';
     document.body.append(picker);

@@ -134,3 +134,84 @@ if (! function_exists('india_xy')) {
         return [round(($lon - 68.0) / 29.6 * 100, 2), round((37.3 - $lat) / 30.8 * 100, 2)];
     }
 }
+
+if (! function_exists('safe_inline')) {
+    /**
+     * Text that may carry a little formatting — a line break in a stats
+     * caption, bold in a spec sheet line — made safe to print.
+     *
+     * Everything is escaped, then only <br>, <strong>, <b> and <em> are let
+     * back in, with no attributes. These strings are edited in the CMS, so
+     * they are never printed raw: a <script> or onclick= typed into a caption
+     * comes out as harmless text.
+     */
+    function safe_inline(?string $text): string
+    {
+        $out = esc((string) $text);
+
+        return (string) preg_replace(
+            '#&lt;(/?)(br|strong|b|em)\s*/?&gt;#i',
+            '<$1$2>',
+            $out
+        );
+    }
+}
+
+if (! function_exists('form_stamp')) {
+    /**
+     * A hidden field recording when a public form was opened, signed so it
+     * cannot be forged. form_stamp_age() reads it back. A bot posting straight
+     * at the form either has no stamp or submits within a second or two.
+     */
+    function form_stamp(): string
+    {
+        $time = (string) time();
+
+        return '<input type="hidden" name="form_ts" value="' . esc($time . '.' . timb_form_signature($time), 'attr') . '">';
+    }
+
+    /** Seconds since the form was opened, or null if the stamp is missing, forged or over a day old. */
+    function form_stamp_age(?string $stamp): ?int
+    {
+        [$time, $sig] = array_pad(explode('.', (string) $stamp, 2), 2, '');
+
+        if (! ctype_digit($time) || ! hash_equals(timb_form_signature($time), $sig)) {
+            return null;
+        }
+
+        $age = time() - (int) $time;
+
+        return $age >= 0 && $age <= 86400 ? $age : null;
+    }
+
+    function timb_form_signature(string $time): string
+    {
+        $secret = (string) (config('Encryption')->key ?: hash_file('sha256', APPPATH . 'Config/App.php'));
+
+        return hash_hmac('sha256', 'form|' . $time, $secret);
+    }
+}
+
+if (! function_exists('admin_url')) {
+    /**
+     * Full address of an admin screen: admin_url('machines/edit/4'). Built
+     * from the site's own base URL, so admin links keep working if the site
+     * is served from a subfolder or needs index.php in its addresses.
+     *
+     * Accepts 'machines', '/admin/machines' or 'admin/machines' alike, so a
+     * path stored as '/admin/…' can be passed straight through. A query
+     * string and a trailing slash are kept as given.
+     */
+    function admin_url(string $path = ''): string
+    {
+        $path = ltrim($path, '/');
+        if ($path === 'admin' || str_starts_with($path, 'admin/') || str_starts_with($path, 'admin?')) {
+            $path = ltrim(substr($path, 5), '/');
+        }
+
+        $base = rtrim(site_url(), '/') . '/admin';
+
+        return $path === '' ? $base : $base . (str_starts_with($path, '?') ? '' : '/') . $path;
+    }
+}
+

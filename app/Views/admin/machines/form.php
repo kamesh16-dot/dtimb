@@ -8,7 +8,7 @@ $check    = static fn (string $f) => $resubmit ? old($f) !== null : ! empty($row
 ?>
 <div class="page-header">
   <h1><?= esc($pageTitle) ?></h1>
-  <a href="/admin/machines" class="btn btn-secondary">← Back</a>
+  <a href="<?= admin_url('machines') ?>" class="btn btn-secondary">← Back</a>
 </div>
 
 <?php if (! empty($errors)): ?>
@@ -21,7 +21,7 @@ $check    = static fn (string $f) => $resubmit ? old($f) !== null : ! empty($row
 <?php endif ?>
 
 <div class="card form-card card-pad">
-  <form method="POST" action="/admin/machines/<?= empty($row['id']) ? 'create' : 'edit/' . $row['id'] ?>">
+  <form method="POST" action="<?= admin_url('machines/') ?><?= empty($row['id']) ? 'create' : 'edit/' . $row['id'] ?>">
     <?= csrf_field() ?>
 
     <div class="field-row">
@@ -75,6 +75,13 @@ $check    = static fn (string $f) => $resubmit ? old($f) !== null : ! empty($row
     <div class="field">
       <label>Summary</label>
       <textarea name="summary" rows="3" placeholder="One sentence shown under the machine name."><?= esc($val('summary')) ?></textarea>
+    </div>
+
+    <div class="field">
+      <label for="page-tagline">Search description</label>
+      <p class="field-hint" style="margin:0 0 .4rem">The grey text under the title in Google, also shown under the product name on its page. Leave blank to use the summary.</p>
+      <textarea id="page-tagline" name="page_tagline" rows="2" maxlength="300"
+                data-counter data-min="<?= \App\Libraries\SeoAudit::DESCRIPTION_MIN ?>" data-max="<?= \App\Libraries\SeoAudit::DESCRIPTION_MAX ?>"><?= esc((string) old('page_tagline', $pageTagline)) ?></textarea>
     </div>
 
     <div class="field-row">
@@ -131,16 +138,18 @@ $check    = static fn (string $f) => $resubmit ? old($f) !== null : ! empty($row
       </label>
     </div>
 
-    <?php if (! empty($row['details_json'])): ?>
-      <p class="field-hint" style="margin-top:.75rem">
-        This machine also has a full product page (specifications, features, galleries) stored with it.
-        That content is not editable here yet and is preserved when you save.
-      </p>
-    <?php endif ?>
+    <details class="field page-json"<?= $err('page_json') ? ' open' : '' ?>>
+      <summary><strong>Advanced: full product page content</strong>
+        <span class="field-hint">Specifications, features, galleries — <?= $pageJson !== '' ? 'stored for this machine' : 'none yet, so the page is built from the fields above' ?>.</span></summary>
+      <textarea name="page_json" rows="18" spellcheck="false" style="font-family:ui-monospace,Menlo,Consolas,monospace;font-size:.8rem;margin-top:.6rem"><?= esc((string) old('page_json', $pageJson)) ?></textarea>
+      <p class="field-hint">Edit carefully: this is the page's structure. It is checked when you save, and nothing is saved if it is not valid.
+        The search description above replaces any <code>tagline</code> in here.</p>
+      <?php if ($err('page_json')): ?><p class="field-hint" style="color:var(--red)"><?= esc($err('page_json')) ?></p><?php endif ?>
+    </details>
 
     <div class="btn-row">
       <button type="submit" class="btn btn-primary">Save machine</button>
-      <a href="/admin/machines" class="btn btn-secondary">Cancel</a>
+      <a href="<?= admin_url('machines') ?>" class="btn btn-secondary">Cancel</a>
     </div>
   </form>
 </div>

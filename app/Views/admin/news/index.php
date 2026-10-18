@@ -1,7 +1,7 @@
 <?php use App\Models\NewsModel; ?>
 <div class="page-header">
   <h1>News Articles</h1>
-  <a href="/admin/news/create" class="btn btn-primary">
+  <a href="<?= admin_url('news/create') ?>" class="btn btn-primary">
     <svg viewBox="0 0 24 24"><path d="M19 11h-6V5h-2v6H5v2h6v6h2v-6h6z"/></svg>
     New Article
   </a>
@@ -22,7 +22,7 @@
       </thead>
       <tbody>
         <?php if (empty($rows)): ?>
-          <tr><td colspan="6" style="text-align:center;color:var(--dim);padding:2rem">No articles yet. <a href="/admin/news/create" style="color:var(--red)">Write one →</a></td></tr>
+          <tr><td colspan="6" style="text-align:center;color:var(--dim);padding:2rem">No articles yet. <a href="<?= admin_url('news/create') ?>" style="color:var(--red)">Write one →</a></td></tr>
         <?php else: ?>
           <?php foreach ($rows as $r): ?>
           <tr data-drawer="news-<?= $r['id'] ?>" tabindex="0" aria-expanded="false"
@@ -43,7 +43,7 @@
             </td>
             <td>
               <?php if (! $r['deleted_at']): ?>
-                <a href="/admin/news/edit/<?= $r['id'] ?>" class="btn btn-secondary" style="padding:.3rem .7rem;font-size:.75rem">Edit</a>
+                <a href="<?= admin_url('news/edit/') ?><?= $r['id'] ?>" class="btn btn-secondary" style="padding:.3rem .7rem;font-size:.75rem">Edit</a>
               <?php endif ?>
             </td>
             <td class="row-more" aria-hidden="true">›</td>
@@ -62,14 +62,14 @@
   $deleted = ! empty($r['deleted_at']);
 
   if ($deleted) {
-      $actions = '<form method="POST" action="/admin/news/restore/' . $r['id'] . '">' . csrf_field()
+      $actions = '<form method="POST" action="' . admin_url('news/restore/') . $r['id'] . '">' . csrf_field()
           . '<button type="submit" class="btn btn-primary">Restore</button></form>';
   } else {
-      $actions = '<a class="btn btn-primary" href="/admin/news/edit/' . $r['id'] . '">Edit</a>'
+      $actions = '<a class="btn btn-primary" href="' . admin_url('news/edit/') . $r['id'] . '">Edit</a>'
           . ($r['is_published']
               ? '<a class="btn btn-secondary" href="' . esc(base_url('news'), 'attr') . '" target="_blank" rel="noopener">View on website ↗</a>'
               : '')
-          . '<form method="POST" action="/admin/news/delete/' . $r['id'] . '">' . csrf_field()
+          . '<form method="POST" action="' . admin_url('news/delete/') . $r['id'] . '">' . csrf_field()
           . '<button type="submit" class="btn btn-danger" data-confirm="Delete \'' . esc($r['title'], 'attr') . '\'? It will stop appearing on the website.">Delete</button></form>';
   }
 

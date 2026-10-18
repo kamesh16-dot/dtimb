@@ -6,6 +6,78 @@ Versioning: `<major>.<phase>.<patch>`.
 
 ---
 
+## [1.25.0] — 2026-10-19 — Security hardening and a rebuildable install
+
+From a review of the project's weak spots. Everything except the PHP 8.2 /
+CodeIgniter 4.7 upgrade, which remains the one open item (see CMS-STATUS).
+
+### Security
+- **Forged Host headers no longer reach the page.** With `app.baseURL` unset,
+  links were built from the request's Host header — a forged one put
+  `evil.example` into 75 links. Production now trusts only local hosts and
+  `app.allowedHostnames`; `X-Forwarded-Proto` is no longer believed in production
+- **https and secure cookies follow the site address**: an https `app.baseURL`
+  forces https, sends HSTS and marks every cookie (the session included) secure
+- **Security headers on every response** (`App\Filters\SecurityHeaders`):
+  a Content Security Policy listing exactly Google Fonts and the Maps embed,
+  nosniff, frame and referrer policies. Checked in Chrome across public and
+  admin pages: no violations
+- **Script injection through CMS text closed.** Home-page stats captions (editable
+  by editors) and product-page lines were printed raw. `safe_inline()` now lets
+  only `<br>`, `<strong>`, `<b>`, `<em>` through, without attributes
+- **Sessions**: a new session id at sign-in; every admin request re-checks the
+  account, so a deactivated or deleted user is signed out on their next click
+  and a role change applies at once; sign-out is a POST with a CSRF token
+- **Sign-in brute force**: 10 attempts per connection per 15 minutes; "locked"
+  is only revealed to someone who knows the password, so the form never
+  confirms which emails have accounts
+- **Public forms**: a signed "form opened at" stamp (a reply within 3 seconds is
+  a bot and is dropped; a stale page is asked to send again), and per-connection
+  limits — 5 enquiries / 3 applications per 10 minutes
+- **Personal data**: job applications and CVs are admin-only; admins can delete
+  a message, with its CV; `cms:housekeeping` removes messages and CVs older than
+  24 months (configurable), orphaned CVs and old logs
+- `writable/uploads/.htaccess` added as a second lock on the CV folder
+- `public/.htaccess` no longer redirects `www` to the bare domain over plain http
+
+### Install and data
+- **The database can be rebuilt.** The two original migrations
+  (`CreateCmsSchema`, `AddLoginAttempts`) were missing from the project; they are
+  recreated from the live schema under their original names, so a database that
+  ran them is unaffected. A fresh install produces tables identical to the live
+  database (checked column by column and index by index)
+- **Seeders**: `ImportExistingContentSeeder` loads the site's content from
+  `app/Database/Seeds/data/content.json` (no personal data) into an empty
+  database only; `AdminUserSeeder` creates the first admin with a one-time
+  random password; `DatabaseSeeder` runs both. Verified: a fresh install's
+  content is identical to the live site's
+- `.env.example` rewritten: required site address, database, key, email
+
+### Admin
+- **Product pages are editable**: a *Search description* field on the machine
+  form, and the full page content as validated JSON under *Advanced*. The four
+  SEO findings that said "ask your developer" are now ordinary fixes
+- **Admin links are built by `admin_url()`** from the site address, so the admin
+  works in a subfolder or with `index.php`; `index.php` no longer appears in
+  addresses. A crawl of all 253 admin pages found no broken link
+
+### Performance
+- **Content cache** (`App\Libraries\CmsCache`): the home page went from 17
+  database queries to 1. Every admin save clears it, so edits show at once
+
+### Tests and logs
+- Admin screens tested against a real database built from the migrations
+  (`Feature/AdminScreensTest`, 13); `Unit/FormStampTest` (8). Suite: 183 tests
+- Tests no longer write to the live logs (~80,000 lines per run before)
+- `cms:status` warns when `app.baseURL` is unset or not https, and when old logs
+  show housekeeping is not scheduled
+
+### Docs
+- CMS-SETUP install steps rewritten; the non-existent `cms.adminPrefix` and
+  favicon generator removed from the docs; CMS-STATUS rewritten
+
+---
+
 ## [1.24.0] — 2026-10-18 — Media Library: safe deletes, photo picker, descriptions
 
 ### Fixed

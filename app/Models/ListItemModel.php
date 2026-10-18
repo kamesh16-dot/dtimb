@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Libraries\CmsCache;
 /**
  * One model over all the Lists Hub tables.
  *
@@ -89,10 +90,10 @@ class ListItemModel
     /** Active rows only, in display order. */
     public function active(): array
     {
-        return $this->db->table($this->table())
+        return CmsCache::remember('list_' . $this->key(), fn () => $this->db->table($this->table())
                         ->where('is_active', 1)
                         ->orderBy('sort_order', 'ASC')->orderBy('id', 'ASC')
-                        ->get()->getResultArray();
+                        ->get()->getResultArray());
     }
 
     public function find(int $id): ?array

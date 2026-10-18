@@ -64,7 +64,7 @@ input:focus{outline:none;border-color:var(--red);box-shadow:0 0 0 3px rgba(200,1
       <div class="alert alert-success"><?= esc($success) ?></div>
     <?php endif ?>
 
-    <form method="POST" action="/admin/login" novalidate>
+    <form method="POST" action="<?= admin_url('login') ?>" novalidate>
       <?= csrf_field() ?>
       <div class="field">
         <label for="email">Email</label>

@@ -5,8 +5,8 @@ $fields  = $list->fields();
 <div class="page-header">
   <h1><?= esc($list->label()) ?></h1>
   <div style="display:flex;gap:.5rem;flex-wrap:wrap">
-    <a href="/admin/lists" class="btn btn-secondary">← All lists</a>
-    <a href="/admin/lists/<?= esc($list->key(), 'url') ?>/add" class="btn btn-primary">
+    <a href="<?= admin_url('lists') ?>" class="btn btn-secondary">← All lists</a>
+    <a href="<?= admin_url('lists/') ?><?= esc($list->key(), 'url') ?>/add" class="btn btn-primary">
       <svg viewBox="0 0 24 24"><path d="M19 11h-6V5h-2v6H5v2h6v6h2v-6h6z"/></svg>
       Add item
     </a>
@@ -31,7 +31,7 @@ $titleField = array_key_first(array_intersect_key(
     array_flip(['name', 'title', 'question', 'value', 'body']),
     $fields
 )) ?? array_key_first($fields);
-$listUrl = '/admin/lists/' . $list->key();
+$listUrl = admin_url('lists/') . $list->key();
 ?>
 <div class="card">
   <div class="table-wrap">
@@ -47,7 +47,7 @@ $listUrl = '/admin/lists/' . $list->key();
       </thead>
       <tbody>
         <?php if (empty($rows)): ?>
-          <tr><td colspan="<?= count($columns) + 4 ?>" style="text-align:center;color:var(--dim);padding:2rem">Nothing in this list yet. <a href="/admin/lists/<?= esc($list->key(), 'url') ?>/add" style="color:var(--red)">Add the first item →</a></td></tr>
+          <tr><td colspan="<?= count($columns) + 4 ?>" style="text-align:center;color:var(--dim);padding:2rem">Nothing in this list yet. <a href="<?= admin_url('lists/') ?><?= esc($list->key(), 'url') ?>/add" style="color:var(--red)">Add the first item →</a></td></tr>
         <?php else: ?>
           <?php foreach ($rows as $i => $r): ?>
           <?php $pos = $pager->offset + $i; ?>

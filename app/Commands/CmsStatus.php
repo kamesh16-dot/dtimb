@@ -113,6 +113,23 @@ class CmsStatus extends BaseCommand
         $env    = (string) env('CI_ENVIRONMENT', 'production');
         $rows[] = $this->row('Environment', $env, $env === 'production' ? 'ok' : 'warn', $env !== 'production' ? 'Set CI_ENVIRONMENT=production for live' : '');
 
+        // ── Site address ─────────────────────────────────────────────────────
+        // From the CLI there is no request, so this is exactly what .env sets.
+        $baseURL = config('App')->baseURL;
+        $default = $baseURL === 'http://localhost:8080/';
+        $https   = str_starts_with($baseURL, 'https://');
+        $rows[]  = $this->row('Site address', $default ? 'not set' : $baseURL,
+            ! $default && $https ? 'ok' : 'warn',
+            $default ? "Set app.baseURL in .env — links are otherwise built from each request's Host header"
+                     : ($https ? '' : 'Use https:// — it switches on HSTS, https redirects and secure cookies'));
+
+        // ── Nightly jobs ─────────────────────────────────────────────────────
+        $logs   = glob(WRITEPATH . 'logs/log-*.log') ?: [];
+        $oldest = $logs === [] ? time() : min(array_map('filemtime', $logs));
+        $tidy   = $oldest > time() - 45 * 86400;
+        $rows[] = $this->row('Housekeeping', $tidy ? 'logs under 45 days old' : 'old logs present', $tidy ? 'ok' : 'warn',
+            $tidy ? '' : 'Schedule nightly: php spark cms:housekeeping (see docs/CMS-SETUP.md)');
+
         // ── cms.adminPrefix ───────────────────────────────────────────────────
         $prefix = (string) env('cms.adminPrefix', 'admin');
         $rows[] = $this->row('Admin prefix', "/{$prefix}", 'ok', '');

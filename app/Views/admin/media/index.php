@@ -61,7 +61,7 @@ $filtered = $filters['q'] !== '' || $filters['folder'] !== '' || $filters['show'
     <?= $filtered ? 'No photos match. Try another search, or <a href="?" style="color:#fff;text-decoration:underline">show all photos</a>.' : 'No photos yet. Press <strong>Upload photos</strong> to add some.' ?>
   </div>
 <?php else: ?>
-  <form method="POST" action="/admin/media/bulk" id="bulk-form">
+  <form method="POST" action="<?= admin_url('media/bulk') ?>" id="bulk-form">
     <?= csrf_field() ?>
 
     <div class="bulk-bar" id="bulk-bar" hidden>
@@ -130,21 +130,21 @@ $filtered = $filters['q'] !== '' || $filters['folder'] !== '' || $filters['show'
       foreach ($i['uses'] as $u) {
           $label = esc($u['label']);
           $usesHtml .= '<li class="' . ($u['blocks'] ? 'is-live' : 'is-info') . '">'
-              . ($u['link'] ? '<a href="' . esc($u['link'], 'attr') . '">' . $label . '</a>' : $label)
+              . ($u['link'] ? '<a href="' . esc(admin_url($u['link']), 'attr') . '">' . $label . '</a>' : $label)
               . '</li>';
       }
       $usesHtml .= '</ul>';
   }
 
-  $actions = '<a class="btn btn-primary" href="/admin/media/edit/' . $i['id'] . '">Edit details</a>'
+  $actions = '<a class="btn btn-primary" href="' . admin_url('media/edit/') . $i['id'] . '">Edit details</a>'
       . '<button type="button" class="btn btn-secondary" data-copy="' . esc($i['key'], 'attr') . '">Copy name</button>'
-      . '<form method="POST" action="/admin/media/replace/' . $i['id'] . '" enctype="multipart/form-data" class="replace-form">'
+      . '<form method="POST" action="' . admin_url('media/replace/') . $i['id'] . '" enctype="multipart/form-data" class="replace-form">'
       . csrf_field()
       . '<label class="btn btn-secondary">Replace photo…<input type="file" name="file" accept=".jpg,.jpeg,.png,.webp" data-autosubmit-file hidden></label>'
       . '</form>';
 
   if ($isAdmin && ! $i['blocks']) {
-      $actions .= '<form method="POST" action="/admin/media/delete/' . $i['id'] . '">' . csrf_field()
+      $actions .= '<form method="POST" action="' . admin_url('media/delete/') . $i['id'] . '">' . csrf_field()
           . '<button type="submit" class="btn btn-danger" data-confirm="Delete ' . esc($i['key'], 'attr') . ' permanently?'
           . ($i['uses'] !== [] ? ' It will drop out of the home page gallery.' : '') . '">Delete</button></form>';
   }
@@ -179,7 +179,7 @@ $filtered = $filters['q'] !== '' || $filters['folder'] !== '' || $filters['show'
 
 <!-- Upload ----------------------------------------------------------------- -->
 <dialog id="upload-dialog" class="upload-dialog" data-open-on-load="<?= empty($errors) ? '0' : '1' ?>" aria-labelledby="upload-title">
-  <form method="POST" action="/admin/media/upload" enctype="multipart/form-data" class="form-card" id="upload-form">
+  <form method="POST" action="<?= admin_url('media/upload') ?>" enctype="multipart/form-data" class="form-card" id="upload-form">
     <?= csrf_field() ?>
 
     <div class="upload-dialog-head">

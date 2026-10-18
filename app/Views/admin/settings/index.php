@@ -19,7 +19,7 @@ $val = static fn (string $f) => old($f, $settings[$f] ?? '');
     These appear on every page of the website.
   </p>
 
-  <form method="POST" action="/admin/settings/save">
+  <form method="POST" action="<?= admin_url('settings/save') ?>">
     <?= csrf_field() ?>
     <?php foreach ($fields as $key => $f): ?>
       <div class="field">
@@ -61,8 +61,8 @@ $val = static fn (string $f) => old($f, $settings[$f] ?? '');
 <div class="card card-pad" style="margin-top:1rem">
   <h2 style="font-size:.95rem;margin:0 0 .3rem">Elsewhere</h2>
   <ul style="font-size:.8rem;color:var(--dim);margin:.4rem 0 0;padding-left:1.1rem;line-height:1.7">
-    <li>Works and office addresses, and the map pins, are in <a href="/admin/lists/network_nodes" style="color:var(--red)">Lists Hub → Network Nodes</a>.</li>
-    <li>Page titles and search descriptions are in <a href="/admin/seo" style="color:var(--red)">SEO</a>.</li>
-    <li>The header Products menu is built from <a href="/admin/machines" style="color:var(--red)">Machines</a>.</li>
+    <li>Works and office addresses, and the map pins, are in <a href="<?= admin_url('lists/network_nodes') ?>" style="color:var(--red)">Lists Hub → Network Nodes</a>.</li>
+    <li>Page titles and search descriptions are in <a href="<?= admin_url('seo') ?>" style="color:var(--red)">SEO</a>.</li>
+    <li>The header Products menu is built from <a href="<?= admin_url('machines') ?>" style="color:var(--red)">Machines</a>.</li>
   </ul>
 </div>

@@ -1,6 +1,6 @@
 <?php
 $editing = $edit !== null;
-$action  = $editing ? '/admin/redirects/edit/' . $edit['id'] : '/admin/redirects/store';
+$action  = $editing ? admin_url('redirects/edit/') . $edit['id'] : admin_url('redirects/store');
 $err     = static fn (string $f) => $errors[$f] ?? null;
 $val     = static fn (string $f) => old($f, $edit[$f] ?? '');
 ?>
@@ -76,7 +76,7 @@ $val     = static fn (string $f) => old($f, $edit[$f] ?? '');
             <td>
               <div class="actions">
                 <a href="<?= esc($pager->with(['edit' => $r['id']]), 'attr') ?>" class="btn btn-secondary" style="padding:.3rem .7rem;font-size:.75rem">Edit</a>
-                <form method="POST" action="/admin/redirects/delete/<?= $r['id'] ?>" style="display:inline">
+                <form method="POST" action="<?= admin_url('redirects/delete/') ?><?= $r['id'] ?>" style="display:inline">
                   <?= csrf_field() ?>
                   <button type="submit" class="btn btn-danger" style="padding:.3rem .7rem;font-size:.75rem" data-confirm="Delete the redirect for <?= esc($r['from_path'], 'attr') ?>?">Delete</button>
                 </form>

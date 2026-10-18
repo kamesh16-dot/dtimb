@@ -4,8 +4,9 @@
  *
  * @var string $type  enquiry | application
  * @var array  $row
+ * @var array  $adminUser  passed through so Delete shows for admins only
  */
-$base = '/admin/inbox/message/' . $type . '/' . $row['id'];
+$base = admin_url('inbox/message/') . $type . '/' . $row['id'];
 
 $moves = match ($row['status']) {
     'new'      => ['read' => 'Mark as read', 'archived' => 'Archive'],
@@ -23,3 +24,9 @@ $moves = match ($row['status']) {
     <button type="submit" class="btn btn-secondary"><?= esc($label) ?></button>
   </form>
 <?php endforeach ?>
+<?php if (($adminUser['role'] ?? '') === 'admin'): ?>
+  <form method="POST" action="<?= admin_url('inbox/delete/') ?><?= esc($type, 'url') ?>/<?= (int) $row['id'] ?>" style="display:inline">
+    <?= csrf_field() ?>
+    <button type="submit" class="btn btn-danger" data-confirm="Delete this <?= $type === 'application' ? 'application and its CV' : 'message' ?> permanently? This cannot be undone.">Delete</button>
+  </form>
+<?php endif ?>

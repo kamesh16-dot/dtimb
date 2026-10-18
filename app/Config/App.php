@@ -19,31 +19,59 @@ class App extends BaseConfig
     public string $baseURL = 'http://localhost:8080/';
 
     /**
-     * Deploy-anywhere fallback. If app.baseURL is NOT set in .env, work the base
-     * URL out from the current request (scheme + host + folder) so that links,
-     * CSS, JS and images never point at localhost. Setting app.baseURL in .env
-     * always wins and turns this off.
+     * Fallback for when app.baseURL is NOT set in .env: work the base URL out
+     * from the current request (scheme + host + folder), so links, CSS, JS and
+     * images never point at localhost. Setting app.baseURL in .env always wins.
+     *
+     * The Host header is supplied by the visitor, so in production it is only
+     * trusted when it is a local address or listed in $allowedHostnames
+     * (app.allowedHostnames in .env). Without that check a forged Host header
+     * would be written into every link on the page — and into any cache in
+     * front of the site.
+     *
+     * Once the address is known, an https site forces https for every request.
      */
     public function __construct()
     {
         parent::__construct();
 
-        $host = (string) ($_SERVER['HTTP_HOST'] ?? '');
+        $this->deriveBaseURL();
 
-        if ($this->baseURL !== 'http://localhost:8080/' || $host === ''
-            || ! preg_match('/^[a-z0-9.\-]+(:\d{1,5})?$/i', $host)) {
+        if (str_starts_with($this->baseURL, 'https://') && ENVIRONMENT === 'production') {
+            $this->forceGlobalSecureRequests = true;
+        }
+    }
+
+    private function deriveBaseURL(): void
+    {
+        $hostPort = (string) ($_SERVER['HTTP_HOST'] ?? '');
+
+        if ($this->baseURL !== 'http://localhost:8080/' || $hostPort === ''
+            || ! preg_match('/^[a-z0-9.\-]+(:\d{1,5})?$/i', $hostPort)) {
             return; // explicitly configured, running from the CLI, or an odd Host header
         }
 
+        $host  = strtolower((string) preg_replace('/:\d+$/', '', $hostPort));
+        $local = in_array($host, ['localhost', '127.0.0.1', '::1'], true);
+
+        if (ENVIRONMENT === 'production' && ! $local && ! in_array($host, $this->allowedHostnames, true)) {
+            log_message('warning', "app.baseURL is not set in .env and the Host '{$host}' is not in app.allowedHostnames; links will use the default address.");
+
+            return;
+        }
+
+        // Forwarded headers come from the visitor too; only believe them locally
+        // or outside production (a proxy in production should set app.baseURL).
         $https = (! empty($_SERVER['HTTPS']) && strtolower((string) $_SERVER['HTTPS']) !== 'off')
-            || strtolower((string) ($_SERVER['HTTP_X_FORWARDED_PROTO'] ?? '')) === 'https'
-            || (string) ($_SERVER['SERVER_PORT'] ?? '') === '443';
+            || (string) ($_SERVER['SERVER_PORT'] ?? '') === '443'
+            || ((ENVIRONMENT !== 'production' || $local)
+                && strtolower((string) ($_SERVER['HTTP_X_FORWARDED_PROTO'] ?? '')) === 'https');
 
         // Folder the site is served from ('' when it is the web root; "/public" is ignored).
         $dir = str_replace('\\', '/', dirname((string) ($_SERVER['SCRIPT_NAME'] ?? '/')));
         $dir = rtrim((string) preg_replace('#/public$#', '', $dir), '/.');
 
-        $this->baseURL = ($https ? 'https://' : 'http://') . $host . $dir . '/';
+        $this->baseURL = ($https ? 'https://' : 'http://') . $hostPort . $dir . '/';
     }
 
     /**
@@ -68,7 +96,10 @@ class App extends BaseConfig
      * something else. If you have configured your web server to remove this file
      * from your site URIs, set this variable to an empty string.
      */
-    public string $indexPage = 'index.php';
+    // Empty: public/.htaccess (and the dev server's router) send every request
+    // to index.php, so it never needs to appear in an address. A host without
+    // URL rewriting can set app.indexPage = 'index.php' in .env.
+    public string $indexPage = '';
 
     /**
      * --------------------------------------------------------------------------

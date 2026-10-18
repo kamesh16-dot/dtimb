@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Libraries\CmsCache;
 /**
  * Site identity — the name, tagline, contact email and links the layout
  * renders on every page.
@@ -82,7 +83,7 @@ class SiteSettingModel
         }
 
         try {
-            $rows = db_connect()->table('settings')->where('group', self::GROUP)->get()->getResultArray();
+            $rows = CmsCache::remember('settings_' . self::GROUP, static fn () => db_connect()->table('settings')->where('group', self::GROUP)->get()->getResultArray());
             foreach ($rows as $r) {
                 if (array_key_exists($r['key'], $values) && trim((string) $r['value']) !== '') {
                     $values[$r['key']] = (string) $r['value'];

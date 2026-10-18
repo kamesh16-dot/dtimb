@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Libraries\CmsCache;
 /**
  * Site-wide SEO settings, stored in the `settings` table under the "seo"
  * group so they sit alongside the existing site settings.
@@ -72,7 +73,7 @@ class SeoSettingModel
         $values = array_map(static fn ($f) => $f['default'], self::FIELDS);
 
         try {
-            $rows = db_connect()->table('settings')->where('group', self::GROUP)->get()->getResultArray();
+            $rows = CmsCache::remember('settings_' . self::GROUP, static fn () => db_connect()->table('settings')->where('group', self::GROUP)->get()->getResultArray());
             foreach ($rows as $r) {
                 if (array_key_exists($r['key'], $values)) {
                     $values[$r['key']] = (string) $r['value'];

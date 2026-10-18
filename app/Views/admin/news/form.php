@@ -18,7 +18,7 @@ if ($resubmit && is_array(old('gallery_path'))) {
 ?>
 <div class="page-header">
   <h1><?= esc($pageTitle) ?></h1>
-  <a href="/admin/news" class="btn btn-secondary">← Back</a>
+  <a href="<?= admin_url('news') ?>" class="btn btn-secondary">← Back</a>
 </div>
 
 <?php if (! empty($errors)): ?>
@@ -31,7 +31,7 @@ if ($resubmit && is_array(old('gallery_path'))) {
 <?php endif ?>
 
 <div class="card form-card card-pad">
-  <form method="POST" action="/admin/news/<?= empty($row['id']) ? 'create' : 'edit/' . $row['id'] ?>">
+  <form method="POST" action="<?= admin_url('news/') ?><?= empty($row['id']) ? 'create' : 'edit/' . $row['id'] ?>">
     <?= csrf_field() ?>
 
     <div class="field-row">
@@ -130,7 +130,7 @@ if ($resubmit && is_array(old('gallery_path'))) {
 
     <div class="btn-row">
       <button type="submit" class="btn btn-primary">Save article</button>
-      <a href="/admin/news" class="btn btn-secondary">Cancel</a>
+      <a href="<?= admin_url('news') ?>" class="btn btn-secondary">Cancel</a>
     </div>
   </form>
 </div>

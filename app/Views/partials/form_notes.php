@@ -5,6 +5,7 @@
  */
 $errors = session('errors') ?? [];
 ?>
+<?= form_stamp() /* when the form was opened; see App\Controllers\Forms */ ?>
 <?php if (session('form_ok') === $kind): ?>
   <div class="form-ok" role="status">
     <svg viewBox="0 0 52 52" aria-hidden="true"><circle cx="26" cy="26" r="24" pathLength="1"/><path d="M15 27l8 8 15-17" pathLength="1"/></svg>

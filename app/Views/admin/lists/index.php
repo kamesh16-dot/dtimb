@@ -7,7 +7,7 @@
 
 <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(250px,1fr));gap:.875rem">
   <?php foreach ($cards as $c): ?>
-    <a href="/admin/lists/<?= esc($c['key'], 'url') ?>" class="card card-pad" style="display:block;text-decoration:none;color:inherit">
+    <a href="<?= admin_url('lists/') ?><?= esc($c['key'], 'url') ?>" class="card card-pad" style="display:block;text-decoration:none;color:inherit">
       <div style="display:flex;align-items:baseline;justify-content:space-between;gap:.5rem">
         <span style="font-weight:700;font-size:.9rem;color:var(--text)"><?= esc($c['label']) ?></span>
         <?php if ($c['count'] === null): ?>

@@ -4,7 +4,7 @@ $locked = static fn (array $r): bool =>
 ?>
 <div class="page-header">
   <h1>Users</h1>
-  <a href="/admin/users/create" class="btn btn-primary">
+  <a href="<?= admin_url('users/create') ?>" class="btn btn-primary">
     <svg viewBox="0 0 24 24"><path d="M19 11h-6V5h-2v6H5v2h6v6h2v-6h6z"/></svg>
     Add User
   </a>
@@ -45,15 +45,15 @@ $locked = static fn (array $r): bool =>
           </td>
           <td>
             <div class="actions" style="white-space:nowrap">
-              <a href="/admin/users/edit/<?= $r['id'] ?>" class="btn btn-secondary" style="padding:.3rem .7rem;font-size:.75rem">Edit</a>
+              <a href="<?= admin_url('users/edit/') ?><?= $r['id'] ?>" class="btn btn-secondary" style="padding:.3rem .7rem;font-size:.75rem">Edit</a>
               <?php if ($locked($r)): ?>
-                <form method="POST" action="/admin/users/unlock/<?= $r['id'] ?>" style="display:inline">
+                <form method="POST" action="<?= admin_url('users/unlock/') ?><?= $r['id'] ?>" style="display:inline">
                   <?= csrf_field() ?>
                   <button type="submit" class="btn btn-secondary" style="padding:.3rem .7rem;font-size:.75rem">Unlock</button>
                 </form>
               <?php endif ?>
               <?php if (! $isMe): ?>
-                <form method="POST" action="/admin/users/delete/<?= $r['id'] ?>" style="display:inline">
+                <form method="POST" action="<?= admin_url('users/delete/') ?><?= $r['id'] ?>" style="display:inline">
                   <?= csrf_field() ?>
                   <button type="submit" class="btn btn-danger" style="padding:.3rem .7rem;font-size:.75rem" data-confirm="Remove <?= esc($r['name'], 'attr') ?>? The account can be restored afterwards.">Remove</button>
                 </form>
@@ -81,7 +81,7 @@ $locked = static fn (array $r): bool =>
             <td><?= esc($r['name']) ?></td>
             <td style="font-size:.78rem;color:var(--dim)"><?= esc($r['email']) ?></td>
             <td style="text-align:right">
-              <form method="POST" action="/admin/users/restore/<?= $r['id'] ?>" style="display:inline">
+              <form method="POST" action="<?= admin_url('users/restore/') ?><?= $r['id'] ?>" style="display:inline">
                 <?= csrf_field() ?>
                 <button type="submit" class="btn btn-secondary" style="padding:.3rem .7rem;font-size:.75rem">Restore</button>
               </form>

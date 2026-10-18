@@ -6,6 +6,10 @@ use App\Models\UserModel;
 
 class Auth extends AdminController
 {
+    /** Sign-in attempts allowed from one connection per window. */
+    private const ATTEMPTS_PER_WINDOW = 10;
+    private const WINDOW_SECONDS      = 900;
+
     protected UserModel $users;
 
     public function initController(
@@ -44,23 +48,41 @@ class Auth extends AdminController
         $email    = trim($this->request->getPost('email') ?? '');
         $password = $this->request->getPost('password') ?? '';
 
-        $user = $this->users->findByEmail($email);
-
-        if (! $user) {
-            return redirect()->to('/admin/login')->with('error', 'Invalid email or password.');
+        // Per connection, whatever email is tried: the per-account lock alone
+        // lets one machine try a password against every address in turn.
+        $throttle = service('throttler');
+        $bucket   = 'admin-login-' . md5((string) $this->request->getIPAddress());
+        if ($throttle->check($bucket, self::ATTEMPTS_PER_WINDOW, self::WINDOW_SECONDS) === false) {
+            return redirect()->to('/admin/login')
+                ->with('error', 'Too many sign-in attempts from your connection. Wait a few minutes and try again.');
         }
 
-        if ($this->users->isLocked($user)) {
-            return redirect()->to('/admin/login')->with('error', 'Account locked. Try again in 15 minutes.');
+        $invalid = 'Invalid email or password.';
+        $user    = $this->users->findByEmail($email);
+
+        if (! $user) {
+            return redirect()->to('/admin/login')->with('error', $invalid);
         }
 
         if (! $this->users->verifyPassword($password, $user['password_hash'])) {
-            $this->users->recordFailedLogin($user['id']);
-            return redirect()->to('/admin/login')->with('error', 'Invalid email or password.');
+            if (! $this->users->isLocked($user)) {
+                $this->users->recordFailedLogin($user['id']);
+            }
+
+            // Same words for a wrong password, a locked account and an unknown
+            // address, so the form never confirms which emails have accounts.
+            return redirect()->to('/admin/login')->with('error', $invalid);
         }
 
-        // Success
+        // Only someone who knows the password learns the account is locked.
+        if ($this->users->isLocked($user)) {
+            return redirect()->to('/admin/login')->with('error', 'This account is locked after too many wrong passwords. Try again in 15 minutes, or ask an admin to unlock it.');
+        }
+
+        // Success. A fresh session id, so one planted before sign-in (session
+        // fixation) is worthless afterwards.
         $this->users->recordLogin($user['id']);
+        session()->regenerate(true);
 
         session()->set([
             'admin_logged_in'           => true,

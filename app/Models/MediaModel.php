@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Libraries\CmsCache;
 use CodeIgniter\Model;
 
 /**
@@ -117,7 +118,7 @@ class MediaModel extends Model
         }
 
         try {
-            $rows = db_connect()->table('media')->select('legacy_key, title, alt_text, variants')->get()->getResultArray();
+            $rows = CmsCache::remember('media_manifest', static fn () => db_connect()->table('media')->select('legacy_key, title, alt_text, variants')->get()->getResultArray());
         } catch (\Throwable $e) {
             log_message('error', 'Media manifest unavailable, using the generated file: ' . $e->getMessage());
 
