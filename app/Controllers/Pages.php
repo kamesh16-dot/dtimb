@@ -2,6 +2,7 @@
 
 namespace App\Controllers;
 
+use App\Libraries\Paginator;
 use App\Models\NewsModel;
 use App\Models\PageModel;
 
@@ -9,6 +10,9 @@ use App\Models\PageModel;
 class Pages extends BaseController
 {
     private ?PageModel $pages = null;
+
+    /** Articles per page on /news. Each one expands in place, so keep it short. */
+    private const NEWS_PER_PAGE = 5;
 
     private function page(string $view, string $title, string $desc, array $extra = []): string
     {
@@ -34,12 +38,20 @@ class Pages extends BaseController
         }
 
         [$seoTitle, $seoDesc] = $this->pageSeo($view);
+        $seoTitle ??= $title . ' | ' . $site->name;
+
+        // Later pages of a paginated list are their own page to a search
+        // engine; give each its own title rather than repeating page one's.
+        $pager = $extra['pager'] ?? null;
+        if ($pager instanceof Paginator && $pager->page > 1) {
+            $seoTitle .= ' (Page ' . $pager->page . ')';
+        }
 
         return view('pages/' . $view, $extra + [
             'site'     => $site,
             'c'        => $content,
             'all'      => array_merge($site->products, $site->solutions),
-            'title'    => $seoTitle ?? ($title . ' | ' . $site->name),
+            'title'    => $seoTitle,
             'metaDesc' => $seoDesc ?? $desc,
             'preload'  => null,
         ]);
@@ -111,10 +123,13 @@ class Pages extends BaseController
 
     public function news(): string
     {
-        $content = require APPPATH . 'Data/Content.php';
-        $content['news'] = $this->newsArticles();
+        $articles = $this->newsArticles();
+        $pager    = Paginator::fromRequest(count($articles), self::NEWS_PER_PAGE, choosablePerPage: false);
 
-        return $this->page('news', 'Latest News', 'News from TI Machine Building.', ['c' => $content]);
+        $content         = require APPPATH . 'Data/Content.php';
+        $content['news'] = $pager->slice($articles);
+
+        return $this->page('news', 'Latest News', 'News from TI Machine Building.', ['c' => $content, 'pager' => $pager]);
     }
 
     /**

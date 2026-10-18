@@ -26,12 +26,19 @@ class SeoAudit
     /**
      * One entry per public address.
      *
-     * @return list<array{url:string,label:string,title:string,description:string,editUrl:?string,issues:list<string>}>
+     * `problems` holds each finding with a plain fix; `issues` is the same
+     * findings as bare sentences, for callers that only need a count.
+     *
+     * @return list<array{url:string,label:string,kind:string,title:string,description:string,editUrl:?string,note:?string,issues:list<string>,problems:list<array{part:string,text:string,tip:string}>}>
      */
     public function rows(): array
     {
         $rows = array_merge($this->pages(), $this->machines());
         $this->flagDuplicates($rows);
+
+        foreach ($rows as $i => $r) {
+            $rows[$i]['issues'] = array_column($r['problems'], 'text');
+        }
 
         return $rows;
     }
@@ -60,6 +67,7 @@ class SeoAudit
                 $rows[] = $this->row(
                     $key === 'home' ? '/' : '/' . $key,
                     $p['title'],
+                    'Page',
                     (string) $p['seo_title'],
                     (string) ($p['seo_description'] ?? ''),
                     '/admin/pages/edit/' . $key
@@ -83,14 +91,38 @@ class SeoAudit
             foreach ($machines->published() as $m) {
                 $slug    = (string) $m['slug'];
                 $details = $machines->details($slug) ?? [];
+                $stored  = json_decode((string) ($m['details_json'] ?? ''), true);
 
-                $rows[] = $this->row(
+                // A machine's description is its stored product-page tagline
+                // when there is one, and only otherwise its summary — which is
+                // the field the machine form edits. Say so, rather than send
+                // someone to a form that cannot change it.
+                $locked = is_array($stored) && trim((string) ($stored['tagline'] ?? '')) !== '';
+                $note   = $locked
+                    ? 'The title is the machine’s name followed by “| ' . $site->name . '”. The description comes from the machine’s full product page, which cannot be edited in the CMS yet.'
+                    : 'The title is the machine’s name followed by “| ' . $site->name . '”. The description is the machine’s summary.';
+
+                $row = $this->row(
                     '/machines/' . $slug,
                     $m['name'],
+                    'Machine',
                     $m['name'] . ' | ' . $site->name,
                     (string) ($details['tagline'] ?? ''),
-                    '/admin/machines/edit/' . $m['id']
+                    '/admin/machines/edit/' . $m['id'],
+                    $note
                 );
+
+                if ($locked) {
+                    $row['lockedDescription'] = true;
+                    foreach ($row['problems'] as $i => $p) {
+                        if ($p['part'] === 'description') {
+                            $row['problems'][$i]['tip']    = 'This text is part of the product page content, which the CMS cannot edit yet. Ask your developer to shorten or change it.';
+                            $row['problems'][$i]['locked'] = true;
+                        }
+                    }
+                }
+
+                $rows[] = $row;
             }
         } catch (\Throwable $e) {
             log_message('error', 'SEO audit could not read machines: ' . $e->getMessage());
@@ -101,48 +133,66 @@ class SeoAudit
 
     // ── Checks ────────────────────────────────────────────────────────────────
 
-    private function row(string $url, string $label, string $title, string $description, ?string $editUrl): array
+    private function row(string $url, string $label, string $kind, string $title, string $description, ?string $editUrl, ?string $note = null): array
     {
         return [
             'url'         => $url,
             'label'       => $label,
+            'kind'        => $kind,
             'title'       => $title,
             'description' => $description,
             'editUrl'     => $editUrl,
-            'issues'      => $this->issues($title, $description),
+            'note'        => $note,
+            'problems'    => $this->problems($title, $description),
+            'issues'      => [],
+            // True when the description cannot be changed through the CMS.
+            'lockedDescription' => false,
         ];
     }
 
-    /** @return list<string> */
-    private function issues(string $title, string $description): array
+    /**
+     * What is wrong, in plain words, each with how to fix it.
+     *
+     * @return list<array{part:string,text:string,tip:string}>
+     */
+    public function problems(string $title, string $description): array
     {
-        $issues = [];
-        $t      = mb_strlen(trim($title));
-        $d      = mb_strlen(trim($description));
+        $out = [];
+        $t   = mb_strlen(trim($title));
+        $d   = mb_strlen(trim($description));
 
         if ($t === 0) {
-            $issues[] = 'No browser title.';
+            $out[] = ['part' => 'title', 'text' => 'There is no title, so Google shows the page address instead.',
+                      'tip'  => 'Write a short title that names the page, e.g. “About | TIMB”.'];
         } elseif ($t > self::TITLE_MAX) {
-            $issues[] = 'Title is ' . $t . ' characters; search results cut off around ' . self::TITLE_MAX . '.';
+            $out[] = ['part' => 'title', 'text' => 'The title is ' . $t . ' characters. Google cuts it off after about ' . self::TITLE_MAX . '.',
+                      'tip'  => 'Shorten it, keeping the most important words at the start.'];
         } elseif ($t < self::TITLE_MIN) {
-            $issues[] = 'Title is very short at ' . $t . ' characters; add a word or two.';
+            $out[] = ['part' => 'title', 'text' => 'The title is very short (' . $t . ' characters).',
+                      'tip'  => 'Add a word or two that says what the page is about.'];
         }
 
         if ($d === 0) {
-            $issues[] = 'No search description, so search engines will invent one.';
+            $out[] = ['part' => 'description', 'text' => 'There is no description, so Google picks some text from the page by itself.',
+                      'tip'  => 'Write one or two sentences (' . self::DESCRIPTION_MIN . '–' . self::DESCRIPTION_MAX . ' characters) saying what is on the page.'];
         } elseif ($d > self::DESCRIPTION_MAX) {
-            $issues[] = 'Description is ' . $d . ' characters; search results cut off around ' . self::DESCRIPTION_MAX . '.';
+            $out[] = ['part' => 'description', 'text' => 'The description is ' . $d . ' characters. Google cuts it off after about ' . self::DESCRIPTION_MAX . '.',
+                      'tip'  => 'Trim it to one or two sentences.'];
         } elseif ($d < self::DESCRIPTION_MIN) {
-            $issues[] = 'Description is short at ' . $d . ' characters.';
+            $out[] = ['part' => 'description', 'text' => 'The description is short (' . $d . ' characters).',
+                      'tip'  => 'Add another sentence so it is ' . self::DESCRIPTION_MIN . '–' . self::DESCRIPTION_MAX . ' characters long.'];
         }
 
-        return $issues;
+        return $out;
     }
 
     /** Two pages sharing a title or description compete with each other. */
     private function flagDuplicates(array &$rows): void
     {
         foreach (['title' => 'title', 'description' => 'description'] as $field => $word) {
+            $tip = $field === 'title'
+                ? 'Give each page its own title, so people can tell them apart in search results.'
+                : 'Give each page its own description of what is on it.';
             $seen = [];
             foreach ($rows as $r) {
                 $value = mb_strtolower(trim($r[$field]));
@@ -154,7 +204,10 @@ class SeoAudit
             foreach ($rows as $i => $r) {
                 $value = mb_strtolower(trim($r[$field]));
                 if ($value !== '' && ($seen[$value] ?? 0) > 1) {
-                    $rows[$i]['issues'][] = 'The same ' . $word . ' is used on another page.';
+                    $locked = $field === 'description' && ! empty($r['lockedDescription']);
+                    $rows[$i]['problems'][] = ['part' => $field, 'text' => 'Another page uses exactly the same ' . $word . '.',
+                        'tip' => $locked ? 'This text is part of the product page content, which the CMS cannot edit yet. Ask your developer to change it.' : $tip]
+                        + ($locked ? ['locked' => true] : []);
                 }
             }
         }

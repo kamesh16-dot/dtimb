@@ -24,7 +24,7 @@ class SiteHelperTest extends CIUnitTestCase
     public function testImgUrlReturnsWebpPath(): void
     {
         $url = img_url('tube-mill/mill-1', '640');
-        $this->assertStringEndsWith('-640.webp', $url);
+        $this->assertStringEndsWith('-640.webp', (string) parse_url($url, PHP_URL_PATH));
         $this->assertStringContainsString('tube-mill/mill-1', $url);
     }
 
@@ -38,7 +38,19 @@ class SiteHelperTest extends CIUnitTestCase
     public function testImgUrl1600Variant(): void
     {
         $url = img_url('tube-mill/mill-1', '1600');
-        $this->assertStringEndsWith('-1600.webp', $url);
+        $this->assertStringEndsWith('-1600.webp', (string) parse_url($url, PHP_URL_PATH));
+    }
+
+    public function testImgUrlCarriesTheFileTimeSoAReplacedPhotoIsRefetched(): void
+    {
+        $file = FCPATH . 'assets/img/machines/tube-mill/mill-1-640.webp';
+        $this->assertFileExists($file);
+        $this->assertStringEndsWith('?v=' . filemtime($file), img_url('tube-mill/mill-1', '640'));
+    }
+
+    public function testImgUrlHasNoVersionForAMissingFile(): void
+    {
+        $this->assertStringEndsWith('no/such-image-640.webp', img_url('no/such-image', '640'));
     }
 
     // ── india_xy ──────────────────────────────────────────────────────────────

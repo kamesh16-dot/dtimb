@@ -35,6 +35,9 @@ class MediaModel extends Model
     /** Where the optimised set lives, relative to public/. */
     public const BASE = 'assets/img/machines/';
 
+    /** WebP quality, matching tools/optimize_images.py. */
+    public const WEBP_QUALITY = 78;
+
     protected $validationRules = [
         'id'         => 'permit_empty|is_natural_no_zero',
         'legacy_key' => 'required|max_length[255]|is_unique[media.legacy_key,id,{id}]',
@@ -69,6 +72,19 @@ class MediaModel extends Model
         return is_array($v) ? $v : [];
     }
 
+    /**
+     * The description (alt text) of an image, or '' when it has none.
+     *
+     * alt_text used to be filled with a copy of the title ("mill 1"), which
+     * describes nothing, so a copy of the title counts as no description.
+     */
+    public static function description(array $row): string
+    {
+        $alt = trim((string) ($row['alt_text'] ?? ''));
+
+        return $alt !== '' && strcasecmp($alt, trim((string) ($row['title'] ?? ''))) !== 0 ? $alt : '';
+    }
+
     /** The folders in use, for the upload form. */
     public function folders(): array
     {
@@ -92,7 +108,7 @@ class MediaModel extends Model
      * Rows shaped like app/Data/ImageManifest.php entries, keyed by legacy_key.
      * Used by timb_manifest() so uploads work without regenerating the file.
      *
-     * @return array<string,array{title:string,files:array}>
+     * @return array<string,array{title:string,alt:string,files:array}>
      */
     public static function manifestRows(): array
     {
@@ -101,7 +117,7 @@ class MediaModel extends Model
         }
 
         try {
-            $rows = db_connect()->table('media')->select('legacy_key, title, variants')->get()->getResultArray();
+            $rows = db_connect()->table('media')->select('legacy_key, title, alt_text, variants')->get()->getResultArray();
         } catch (\Throwable $e) {
             log_message('error', 'Media manifest unavailable, using the generated file: ' . $e->getMessage());
 
@@ -116,6 +132,7 @@ class MediaModel extends Model
             }
             $out[(string) $r['legacy_key']] = [
                 'title' => (string) ($r['title'] ?? ''),
+                'alt'   => self::description($r),
                 'files' => $files,
             ];
         }
@@ -175,6 +192,65 @@ class MediaModel extends Model
     }
 
     // ── Files ─────────────────────────────────────────────────────────────────
+
+    /**
+     * Write the -1600 and -640 webp variants of a source image under a key,
+     * matching tools/optimize_images.py: never upscale, keep the aspect ratio,
+     * quality 78. Shared by uploads, replacements and the news-photo import.
+     *
+     * @return array<string,array{0:int,1:int}> width => [w, h]
+     */
+    public static function writeVariants(string $source, string $key): array
+    {
+        $info = @getimagesize($source);
+        if ($info === false) {
+            throw new \RuntimeException('the file is not a readable image');
+        }
+        [$srcW, $srcH] = $info;
+
+        $dir = FCPATH . self::BASE . dirname($key);
+        if (! is_dir($dir) && ! @mkdir($dir, 0775, true) && ! is_dir($dir)) {
+            throw new \RuntimeException('the image folder could not be created');
+        }
+
+        $variants = [];
+        $written  = [];
+
+        try {
+            foreach (self::SIZES as $maxW) {
+                $w = $srcW;
+                $h = $srcH;
+                if ($w > $maxW) {
+                    $h = (int) round($h * $maxW / $w);
+                    $w = $maxW;
+                }
+
+                $target = FCPATH . self::BASE . $key . '-' . $maxW . '.webp';
+
+                service('image')
+                    ->withFile($source)
+                    ->resize($w, $h, true)
+                    ->convert(IMAGETYPE_WEBP)
+                    ->save($target, self::WEBP_QUALITY);
+
+                if (! is_file($target)) {
+                    throw new \RuntimeException('a variant could not be written');
+                }
+
+                $written[]                = $target;
+                $variants[(string) $maxW] = [$w, $h];
+            }
+        } catch (\Throwable $e) {
+            foreach ($written as $file) {
+                @unlink($file); // never leave half an image set behind
+            }
+
+            throw $e;
+        }
+
+        return $variants;
+    }
+
 
     /** Absolute paths of every variant file for a key, those that exist. */
     public static function variantFiles(string $key): array

@@ -33,9 +33,32 @@ if (! function_exists('timb_manifest')) {
 }
 
 if (! function_exists('img_url')) {
+    /**
+     * URL of one size of an image. Carries ?v=<file time>, so a photo replaced
+     * in the media library is fetched again rather than served from a cache.
+     */
     function img_url(string $key, string $size = '640'): string
     {
-        return base_url("assets/img/machines/{$key}-{$size}.webp");
+        $path = "assets/img/machines/{$key}-{$size}.webp";
+        $file = FCPATH . $path;
+
+        return base_url($path) . (is_file($file) ? '?v=' . filemtime($file) : '');
+    }
+}
+
+if (! function_exists('photo_url')) {
+    /**
+     * URL for a photo referenced by key, as news articles do. Library images
+     * resolve through img_url(); anything else falls back to the single file
+     * news photos used before they joined the library: assets/img/<key>.webp.
+     */
+    function photo_url(string $key, string $size = '1600'): string
+    {
+        $key = trim($key, '/');
+
+        return isset(timb_manifest()[$key])
+            ? img_url($key, $size)
+            : base_url('assets/img/' . $key . '.webp');
     }
 }
 
@@ -52,6 +75,12 @@ if (! function_exists('img_tag')) {
             log_message('error', "Unknown image key: {$key} ({$size})");
 
             return '';
+        }
+
+        // No alt given for a picture that carries meaning: use the description
+        // stored in the media library. Decorative images pass role=presentation.
+        if ($alt === '' && ($attrs['role'] ?? '') !== 'presentation') {
+            $alt = (string) (timb_manifest()[$key]['alt'] ?? '');
         }
 
         $attrs = ['src' => img_url($key, $size), 'alt' => $alt, 'width' => $dims[0], 'height' => $dims[1], 'decoding' => 'async'] + $attrs;

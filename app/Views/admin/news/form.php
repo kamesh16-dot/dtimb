@@ -69,9 +69,9 @@ if ($resubmit && is_array(old('gallery_path'))) {
 
     <div class="field-row">
       <div class="field">
-        <label>Hero image</label>
-        <input type="text" name="hero_path" value="<?= esc($val('hero_path')) ?>" placeholder="e.g. news/imtex-2020-booth">
-        <p class="field-hint">Path under <code>public/assets/img/</code>, without the <code>.webp</code> ending.</p>
+        <label>Main photo</label>
+        <input type="text" name="hero_path" value="<?= esc($val('hero_path')) ?>" placeholder="e.g. news/imtex-2020-booth" data-media-picker>
+        <p class="field-hint">Press <strong>Choose photo</strong> to pick from the Media Library.</p>
       </div>
       <div class="field">
         <label>Hero image description</label>
@@ -102,7 +102,7 @@ if ($resubmit && is_array(old('gallery_path'))) {
       <div id="gallery-rows">
         <?php foreach ($rows as $g): ?>
           <div class="field-row gallery-row" style="margin-bottom:.5rem">
-            <div class="field"><input type="text" name="gallery_path[]" value="<?= esc($g['image_path']) ?>" placeholder="news/photo-1"></div>
+            <div class="field"><input type="text" name="gallery_path[]" value="<?= esc($g['image_path']) ?>" placeholder="news/photo-1" data-media-picker></div>
             <div class="field" style="display:flex;gap:.5rem">
               <input type="text" name="gallery_alt[]" value="<?= esc($g['alt'] ?? '') ?>" placeholder="What the photo shows" style="width:100%">
               <button type="button" class="btn btn-secondary gallery-remove" style="padding:.3rem .7rem;font-size:.75rem" title="Remove this photo">×</button>
@@ -146,7 +146,7 @@ if ($resubmit && is_array(old('gallery_path'))) {
     row.className = 'field-row gallery-row';
     row.style.marginBottom = '.5rem';
     row.innerHTML =
-      '<div class="field"><input type="text" name="gallery_path[]" placeholder="news/photo-1"></div>' +
+      '<div class="field"><input type="text" name="gallery_path[]" placeholder="news/photo-1" data-media-picker></div>' +
       '<div class="field" style="display:flex;gap:.5rem">' +
       '<input type="text" name="gallery_alt[]" placeholder="What the photo shows" style="width:100%">' +
       '<button type="button" class="btn btn-secondary gallery-remove" style="padding:.3rem .7rem;font-size:.75rem" title="Remove this photo">×</button>' +

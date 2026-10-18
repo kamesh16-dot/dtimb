@@ -25,9 +25,13 @@ class Machines extends AdminController
 
     public function index(): string
     {
+        $rows  = $this->machines->forAdmin();
+        $pager = $this->listPage(count($rows));
+
         return $this->adminView('admin/machines/index', [
             'pageTitle' => 'Machines',
-            'rows'      => $this->machines->forAdmin(),
+            'rows'      => $pager->slice($rows),
+            'pager'     => $pager,
         ]);
     }
 
@@ -62,7 +66,8 @@ class Machines extends AdminController
 
         $this->audit('machine_create', $data['name'], (int) $this->machines->getInsertID(), 'machine');
 
-        return redirect()->to('/admin/machines')->with('success', 'Machine created.');
+        // Newest first, so the new machine is at the top of page 1.
+        return $this->toList('/admin/machines', firstPage: true)->with('success', 'Machine created.');
     }
 
     public function update(int $id): RedirectResponse
@@ -84,7 +89,7 @@ class Machines extends AdminController
 
         $this->audit('machine_update', $data['name'], $id, 'machine');
 
-        return redirect()->to('/admin/machines')->with('success', 'Machine updated.');
+        return $this->toList('/admin/machines')->with('success', 'Machine updated.');
     }
 
     public function delete(int $id): RedirectResponse
@@ -99,7 +104,7 @@ class Machines extends AdminController
         $this->machines->delete($id); // soft delete — keeps details_json recoverable
         $this->audit('machine_delete', $row['name'], $id, 'machine');
 
-        return redirect()->to('/admin/machines')
+        return $this->toList('/admin/machines')
                          ->with('success', 'Machine deleted. Its slug stays reserved.');
     }
 
@@ -115,7 +120,7 @@ class Machines extends AdminController
         $this->machines->restore($id);
         $this->audit('machine_restore', $row['name'], $id, 'machine');
 
-        return redirect()->to('/admin/machines')->with('success', 'Machine restored.');
+        return $this->toList('/admin/machines')->with('success', 'Machine restored.');
     }
 
     // ── Internals ─────────────────────────────────────────────────────────────

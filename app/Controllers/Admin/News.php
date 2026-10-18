@@ -24,7 +24,9 @@ class News extends AdminController
 
     public function index(): string
     {
-        $rows = $this->news->forAdmin();
+        $all   = $this->news->forAdmin();
+        $pager = $this->listPage(count($all));
+        $rows  = $pager->slice($all);
 
         $counts = [];
         foreach ($this->news->galleriesFor(array_column($rows, 'id')) as $id => $images) {
@@ -35,6 +37,7 @@ class News extends AdminController
             'pageTitle'      => 'News Articles',
             'rows'           => $rows,
             'galleryCounts'  => $counts,
+            'pager'          => $pager,
         ]);
     }
 
@@ -69,7 +72,7 @@ class News extends AdminController
         $this->news->saveGallery($id, $this->galleryInput());
         $this->audit('news_create', $data['title'], $id, 'news');
 
-        return redirect()->to('/admin/news')->with('success', 'Article created.');
+        return $this->toList('/admin/news')->with('success', 'Article created.');
     }
 
     public function update(int $id): RedirectResponse
@@ -90,7 +93,7 @@ class News extends AdminController
         $this->news->saveGallery($id, $this->galleryInput());
         $this->audit('news_update', $data['title'], $id, 'news');
 
-        return redirect()->to('/admin/news')->with('success', 'Article updated.');
+        return $this->toList('/admin/news')->with('success', 'Article updated.');
     }
 
     public function delete(int $id): RedirectResponse
@@ -106,7 +109,7 @@ class News extends AdminController
         $this->news->delete($id);
         $this->audit('news_delete', $row['title'], $id, 'news');
 
-        return redirect()->to('/admin/news')
+        return $this->toList('/admin/news')
                          ->with('success', 'Article deleted. Its slug stays reserved.');
     }
 
@@ -122,7 +125,7 @@ class News extends AdminController
         $this->news->restore($id);
         $this->audit('news_restore', $row['title'], $id, 'news');
 
-        return redirect()->to('/admin/news')->with('success', 'Article restored.');
+        return $this->toList('/admin/news')->with('success', 'Article restored.');
     }
 
     // ── Internals ─────────────────────────────────────────────────────────────

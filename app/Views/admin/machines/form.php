@@ -79,12 +79,12 @@ $check    = static fn (string $f) => $resubmit ? old($f) !== null : ! empty($row
 
     <div class="field-row">
       <div class="field">
-        <label>Photo key</label>
-        <input type="text" name="image_key" value="<?= esc($val('image_key')) ?>" list="image-list" placeholder="e.g. tube-mill/mill-1">
+        <label>Photo</label>
+        <input type="text" name="image_key" value="<?= esc($val('image_key')) ?>" list="image-list" placeholder="e.g. tube-mill/mill-1" data-media-picker>
         <datalist id="image-list">
           <?php foreach ($images as $k): ?><option value="<?= esc($k, 'attr') ?>"><?php endforeach ?>
         </datalist>
-        <p class="field-hint">From the optimised image set. Leave blank for solutions.</p>
+        <p class="field-hint">Press <strong>Choose photo</strong> to pick from the Media Library. Leave blank for solutions.</p>
         <?php if ($err('image_key')): ?><p class="field-hint" style="color:var(--red)"><?= esc($err('image_key')) ?></p><?php endif ?>
       </div>
       <div class="field">

@@ -2,6 +2,7 @@
 
 namespace App\Controllers;
 
+use App\Libraries\MediaUsage;
 use App\Models\PageModel;
 
 class Home extends BaseController
@@ -9,14 +10,19 @@ class Home extends BaseController
     public function index(): string
     {
         $gallery = [];
-        foreach (array_keys(timb_manifest()) as $key) {
-            [$category, $file] = explode('/', $key);
-            if (str_starts_with($category, 'product-')) {
-                continue; // product-page photos live in the manifest but not in the home gallery
+        foreach (timb_manifest() as $key => $image) {
+            // Product-page photos and news photos live in the library but not
+            // in the home gallery (App\Libraries\MediaUsage uses the same rule).
+            if (! MediaUsage::inHomeGallery($key)) {
+                continue;
             }
+            $category  = strstr($key, '/', true) ?: $key;
             $gallery[] = [
                 'key' => $key,
-                'alt' => 'TIMB ' . ucwords(str_replace('-', ' ', $category)) . ' – ' . timb_manifest()[$key]['title'],
+                // The description from the media library when there is one.
+                'alt' => ($image['alt'] ?? '') !== ''
+                    ? $image['alt']
+                    : 'TIMB ' . ucwords(str_replace('-', ' ', $category)) . ' – ' . $image['title'],
             ];
         }
 

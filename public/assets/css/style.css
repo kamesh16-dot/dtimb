@@ -944,3 +944,15 @@ button.button{border:0;cursor:pointer;font:inherit}
 .footer-brands .murugappa-logo img{height:3.2rem}
 .head-brands .murugappa-logo{padding:.3rem .8rem;background:#fff;border-radius:.6rem}
 .head-brands .murugappa-logo img{height:2.2rem}
+
+/* ---------- pagination (news and any future public list) ---------- */
+.pagination{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:1rem 2rem;margin-top:clamp(1.5rem,3vw,2.5rem)}
+.pagination-info{color:var(--muted);font-size:.95rem}
+.pagination ul{list-style:none;display:flex;flex-wrap:wrap;align-items:center;gap:.4rem;margin:0;padding:0}
+.pagination-num,.pagination-step{display:inline-flex;align-items:center;justify-content:center;gap:.4rem;min-width:2.75rem;height:2.75rem;padding:0 .9rem;border-radius:999px;background:#fff;border:1px solid var(--paper-2);color:var(--text);font-weight:600;transition:background .3s var(--ease),color .3s var(--ease),border-color .3s var(--ease)}
+a.pagination-num:hover,a.pagination-step:hover{background:var(--ink);border-color:var(--ink);color:#fff}
+a.pagination-num:focus-visible,a.pagination-step:focus-visible{outline:3px solid var(--focus);outline-offset:2px}
+.pagination-num.is-on{background:var(--red);border-color:var(--red);color:#fff}
+.pagination-step.is-off{opacity:.4}
+.pagination-gap{padding:0 .25rem;color:var(--muted)}
+@media (max-width:560px){.pagination-step>span{display:none}}

@@ -28,9 +28,13 @@ class Pages extends AdminController
 
     public function index(): string
     {
+        $rows  = $this->pages->forAdmin();
+        $pager = $this->listPage(count($rows));
+
         return $this->adminView('admin/pages/index', [
             'pageTitle' => 'Pages',
-            'rows'      => $this->pages->forAdmin(),
+            'rows'      => $pager->slice($rows),
+            'pager'     => $pager,
         ]);
     }
 
@@ -91,7 +95,7 @@ class Pages extends AdminController
 
         $this->audit('page_update', $data['title'], (int) $row['id'], 'page');
 
-        return redirect()->to('/admin/pages')->with('success', 'Page saved.');
+        return $this->toList('/admin/pages')->with('success', 'Page saved.');
     }
 
     /** Where this page lives on the public site. */

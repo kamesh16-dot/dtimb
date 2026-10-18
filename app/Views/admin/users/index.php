@@ -11,7 +11,7 @@ $locked = static fn (array $r): bool =>
 </div>
 
 <p style="margin:0 0 1rem;font-size:.78rem;color:var(--dim)">
-  <?= count($rows) ?> account<?= count($rows) === 1 ? '' : 's' ?>,
+  <?= (int) $pager->total ?> account<?= $pager->total === 1 ? '' : 's' ?>,
   <?= (int) $adminCount ?> with admin access. Admins can manage users and settings; editors can only change content.
 </p>
 
@@ -66,8 +66,9 @@ $locked = static fn (array $r): bool =>
     </table>
   </div>
 </div>
+<?= view('admin/partials/pagination', ['pager' => $pager, 'noun' => 'accounts', 'one' => 'account']) ?>
 
-<?php if (! empty($deleted)): ?>
+<?php if ($dPager->total > 0): ?>
   <div class="card card-pad" style="margin-top:1rem">
     <h2 style="font-size:.9rem;margin:0 0 .6rem">Removed accounts</h2>
     <p style="font-size:.75rem;color:var(--dim);margin:0 0 .75rem">
@@ -89,5 +90,6 @@ $locked = static fn (array $r): bool =>
         <?php endforeach ?>
       </tbody>
     </table>
+    <?= view('admin/partials/pagination', ['pager' => $dPager, 'noun' => 'removed accounts', 'one' => 'removed account']) ?>
   </div>
 <?php endif ?>

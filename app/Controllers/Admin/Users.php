@@ -30,10 +30,19 @@ class Users extends AdminController
     {
         $this->requireRole('admin');
 
+        $rows    = $this->users->listing();
+        $deleted = $this->users->deletedListing();
+        $pager   = $this->listPage(count($rows));
+        // The removed accounts get their own page numbers, so paging one
+        // table leaves the other where it is.
+        $dPager  = \App\Libraries\Paginator::fromRequest(count($deleted), 10, 'dpage', 'dper');
+
         return $this->adminView('admin/users/index', [
             'pageTitle' => 'Users',
-            'rows'      => $this->users->listing(),
-            'deleted'   => $this->users->deletedListing(),
+            'rows'      => $pager->slice($rows),
+            'pager'     => $pager,
+            'deleted'   => $dPager->slice($deleted),
+            'dPager'    => $dPager,
             'meId'      => (int) ($this->adminUser['id'] ?? 0),
             'adminCount' => $this->users->activeAdminCount(),
         ]);
@@ -88,7 +97,7 @@ class Users extends AdminController
 
         $this->audit('user_create', $email, (int) $this->users->getInsertID(), 'user');
 
-        return redirect()->to('/admin/users')
+        return $this->toList('/admin/users')
                          ->with('success', $name . ' can now sign in, and will be asked to set a new password.');
     }
 
@@ -130,7 +139,7 @@ class Users extends AdminController
 
         $this->audit('user_update', $email, $id, 'user');
 
-        return redirect()->to('/admin/users')->with('success', 'Account updated.');
+        return $this->toList('/admin/users')->with('success', 'Account updated.');
     }
 
     /** Set a new password and require the holder to change it at next sign-in. */
@@ -158,7 +167,7 @@ class Users extends AdminController
 
         $this->audit('user_password_reset', (string) $row['email'], $id, 'user');
 
-        return redirect()->to('/admin/users')
+        return $this->toList('/admin/users')
                          ->with('success', 'Password set. ' . $row['name'] . ' must change it at next sign-in.');
     }
 
@@ -175,7 +184,7 @@ class Users extends AdminController
         $this->users->unlock($id);
         $this->audit('user_unlock', (string) $row['email'], $id, 'user');
 
-        return redirect()->to('/admin/users')->with('success', 'Account unlocked.');
+        return $this->toList('/admin/users')->with('success', 'Account unlocked.');
     }
 
     public function delete(int $id): RedirectResponse
@@ -188,17 +197,17 @@ class Users extends AdminController
         }
 
         if ($id === (int) ($this->adminUser['id'] ?? 0)) {
-            return redirect()->to('/admin/users')->with('error', 'You cannot remove your own account.');
+            return $this->toList('/admin/users')->with('error', 'You cannot remove your own account.');
         }
         if ($this->users->isLastActiveAdmin($id)) {
-            return redirect()->to('/admin/users')
+            return $this->toList('/admin/users')
                              ->with('error', 'This is the only active admin. Give someone else admin access first.');
         }
 
         $this->users->delete($id);
         $this->audit('user_delete', (string) $row['email'], $id, 'user');
 
-        return redirect()->to('/admin/users')
+        return $this->toList('/admin/users')
                          ->with('success', $row['name'] . ' removed. The account can be restored.');
     }
 
@@ -214,7 +223,7 @@ class Users extends AdminController
         $this->users->restore($id);
         $this->audit('user_restore', (string) $row['email'], $id, 'user');
 
-        return redirect()->to('/admin/users')->with('success', $row['name'] . ' restored.');
+        return $this->toList('/admin/users')->with('success', $row['name'] . ' restored.');
     }
 
     // ── Internals ─────────────────────────────────────────────────────────────

@@ -5,6 +5,7 @@
  * @var string $pageTitle    the resolved <title>
  * @var string $pageDesc     the resolved meta description
  * @var \Config\Site $site
+ * @var int          $listPage     page number of a paginated list, 1 otherwise
  *
  * Both blocks can be turned off in Admin → SEO. Nothing here changes what is
  * on the page itself; it only tells search engines and link previews what
@@ -29,6 +30,14 @@ try {
 // would then advertise two different addresses.
 $root      = $base !== '' ? $base : preg_replace('#/index\.php$#', '', rtrim(base_url(), '/'));
 $canonical = $root . timb_path();
+
+// Page 2 onwards of a paginated list is a page in its own right; pointing it
+// at page 1 would tell search engines to ignore the articles it lists. The
+// number comes from the paginator, which has already clamped ?page=99 to a
+// page that exists.
+if (($listPage ?? 1) > 1) {
+    $canonical .= '?page=' . (int) $listPage;
+}
 $shareUrl  = $shareKey !== '' && isset(timb_manifest()[$shareKey]) ? img_url($shareKey, '1600') : null;
 ?>
 <?php if ($canonicalOn): ?>

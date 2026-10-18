@@ -70,6 +70,8 @@ $routes->group('admin', static function ($routes) {
         // Lists Hub
         $routes->get('lists', 'Admin\ListsHub::index');
         $routes->get('lists/(:segment)',                      'Admin\ListsHub::manage/$1');
+        $routes->get('lists/(:segment)/add',                  'Admin\ListsHub::create/$1');
+        $routes->get('lists/(:segment)/edit/(:num)',          'Admin\ListsHub::edit/$1/$2');
         $routes->post('lists/(:segment)/add',                 'Admin\ListsHub::store/$1',        ['filter' => 'csrf']);
         $routes->post('lists/(:segment)/edit/(:num)',         'Admin\ListsHub::update/$1/$2',    ['filter' => 'csrf']);
         $routes->post('lists/(:segment)/delete/(:num)',       'Admin\ListsHub::delete/$1/$2',    ['filter' => 'csrf']);
@@ -78,7 +80,12 @@ $routes->group('admin', static function ($routes) {
 
         // Media
         $routes->get('media',              'Admin\Media::index');
+        $routes->get('media/library',      'Admin\Media::library');   // JSON for the "Choose photo" picker
+        $routes->get('media/edit/(:num)',  'Admin\Media::edit/$1');
+        $routes->post('media/edit/(:num)', 'Admin\Media::update/$1',  ['filter' => 'csrf']);
         $routes->post('media/upload',      'Admin\Media::upload',    ['filter' => 'csrf']);
+        $routes->post('media/replace/(:num)','Admin\Media::replace/$1',['filter' => 'csrf']);
+        $routes->post('media/bulk',        'Admin\Media::bulk',      ['filter' => 'csrf']);
         $routes->post('media/delete/(:num)','Admin\Media::delete/$1',['filter' => 'csrf']);
         $routes->post('media/rename/(:num)','Admin\Media::update/$1',['filter' => 'csrf']);
 

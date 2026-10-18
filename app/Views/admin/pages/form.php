@@ -40,18 +40,17 @@ $desc = (string) $val('seo_description');
 
     <div class="field">
       <label>Browser title *</label>
-      <input type="text" name="seo_title" value="<?= esc($val('seo_title')) ?>" required>
-      <p class="field-hint">Shown in the browser tab and as the headline in search results. Around 60 characters reads best.</p>
+      <p class="field-hint" style="margin:0 0 .4rem">The blue headline people click in Google, and the text on the browser tab.</p>
+      <input type="text" name="seo_title" value="<?= esc($val('seo_title')) ?>" required
+             data-counter data-min="<?= \App\Libraries\SeoAudit::TITLE_MIN ?>" data-max="<?= \App\Libraries\SeoAudit::TITLE_MAX ?>">
       <?php if ($err('seo_title')): ?><p class="field-hint" style="color:var(--red)"><?= esc($err('seo_title')) ?></p><?php endif ?>
     </div>
 
     <div class="field">
       <label>Search description</label>
-      <textarea name="seo_description" rows="3" id="seo-desc"><?= esc($desc) ?></textarea>
-      <p class="field-hint">
-        The grey text under the title in search results.
-        <span id="seo-count"><?= mb_strlen($desc) ?></span> characters — search engines usually cut off around 160.
-      </p>
+      <p class="field-hint" style="margin:0 0 .4rem">The grey sentence under the headline in Google. One or two sentences about what is on the page.</p>
+      <textarea name="seo_description" rows="3"
+                data-counter data-min="<?= \App\Libraries\SeoAudit::DESCRIPTION_MIN ?>" data-max="<?= \App\Libraries\SeoAudit::DESCRIPTION_MAX ?>"><?= esc($desc) ?></textarea>
       <?php if ($err('seo_description')): ?><p class="field-hint" style="color:var(--red)"><?= esc($err('seo_description')) ?></p><?php endif ?>
     </div>
 
@@ -89,12 +88,3 @@ $desc = (string) $val('seo_description');
     </div>
   </form>
 </div>
-
-<script>
-(function () {
-  var box = document.getElementById('seo-desc');
-  var out = document.getElementById('seo-count');
-  if (!box || !out) return;
-  box.addEventListener('input', function () { out.textContent = box.value.length; });
-})();
-</script>

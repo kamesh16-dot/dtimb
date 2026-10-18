@@ -159,47 +159,101 @@ Shared lists used across multiple pages:
 - **Disclaimer points** — legal text on `/disclaimer`
 - **Industries** — the five sectors shown on the home and industries pages
 
+**Working with a list:**
+- **Add an item** — press **+ Add item** at the top of the list. Fill in the
+  form and press **Add item**. Untick **Show on the website** to save it
+  without it appearing on the site yet.
+- **See everything about an item** — click its row. A panel opens on the right
+  with every field in full, and buttons to **Edit**, **Hide from website** or
+  **Delete** it.
+- **Reorder** — use the ↑ and ↓ buttons in the row.
+- **Hide rather than delete** — deleting removes an item for good; hiding
+  keeps it so you can show it again later.
+
 ---
 
 ## 8. Media Library
 
-The media library stores all images used across the CMS.
+Every photo on the website lives here. The top of the screen shows how many
+photos there are, the space they use, how many are not used on any page, and
+how many still need a description — click a number to see those photos.
+
+### Finding a photo
+Search by name, description or original file name, pick a folder, choose
+**Not used on any page** or **No description**, and sort by name, newest or
+largest file.
+
+### Seeing everything about a photo
+Click a photo. A panel opens with the picture, its name (with **Copy name**),
+its description, its size, and **Used on** — every page that shows it, with a
+link. A green dot means deleting it would break that page; a grey dot (the home
+page photo gallery) just means it would drop out of the gallery.
 
 ### Uploading
-- Drag and drop or click **Upload files**
-- Up to 20 files at once; max 10 MB per file
-- Accepted: JPG, PNG, GIF, WebP, SVG, PDF
-- **Alt text is required** before an image can be saved
-- Images are automatically re-encoded as WebP at 640 px and 1600 px (GD library)
-- SVGs are sanitised (strips `<script>`, `onload`, `javascript:`)
-- Files that look like PHP renamed as `.jpg` are rejected
+Press **Upload photos**, then drag photos onto the box or click to choose — as
+many as you like. JPG, PNG or WebP, up to 12 MB each. Both display sizes are
+made for you, and the message afterwards says how much smaller they became.
+You are warned about any photo narrower than 1600 pixels, which may look
+blurry in the large banners. With a single photo you can also give it a
+display name, its name and a description.
 
-### Replacing an image
-Click **Replace** on any image to upload a new file at the same URL. All pages that use the image update automatically.
+### Describing a photo
+Open a photo and press **Edit details**. The **Description** says what the
+photo shows in one sentence; it is read aloud to blind visitors and helps the
+photo appear in Google Images. The SEO screen reminds you how many are missing.
 
-### "Used in"
-Each image shows a list of content items that reference it, so you know what will be affected before deleting.
+### Replacing a photo
+Press **Replace photo…** and choose the new file. It keeps the same name, so
+every page using it shows the new picture straight away.
 
-### Deleting
-Soft-delete moves the image to the Bin. It can be restored. Once permanently deleted, any content using it will show a broken image.
+### Moving and deleting
+Change the **Folder** on the edit page, or tick several photos and use
+**Move to folder**. Everything that uses them — machines, home banners, news,
+the sharing picture — is updated for you. Photos that are part of a product
+page or the page design cannot be moved without your developer.
+
+A photo that is in use on the website cannot be deleted; the message says
+where it is used. Tick several unused photos and press **Delete** to remove
+them in one go *(admins only)*.
+
+### Choosing a photo elsewhere
+Wherever the CMS asks for a photo — a machine, a home banner, a news article,
+the sharing picture in SEO — press **Choose photo** to pick it from the
+library instead of typing its name.
 
 ---
 
 ## 9. SEO
 
-The **SEO** screen sets global defaults:
-- Default title suffix (e.g. `| TIMB`)
-- Default meta description
-- Google Site Verification tag
-- robots.txt rules (noindex paths, disallowed bots)
+**SEO** is about how your pages appear when people search on Google. The screen
+has three tabs.
 
-Per-page SEO is set on each machine / page / news article's own **SEO** tab.
+### Pages in Google
+- The bar at the top shows how many pages look good, e.g. *16 of 23 pages look
+  good in Google*.
+- The list opens on **Needs work** — the pages worth fixing. Switch to
+  **Looks good** or **All pages** with the buttons above it.
+- **Click a page** to see it exactly as it appears in Google (blue title, grey
+  description), what is wrong in plain words, and how to fix it. The bars under
+  the title and description turn green when the length is right.
+- Press **Fix** (or **Fix this page**) to go to the page or machine and change it.
+  While typing a title or description on a page, a counter under the box shows
+  whether the length is right.
+- A few machines take their description from their full product page, which
+  the CMS cannot edit yet. Those say *Ask your developer* instead of offering a fix.
 
-The CMS automatically generates:
-- `<link rel="canonical">` on every page
-- Open Graph `<meta>` tags (title, description, image)
-- JSON-LD structured data (Organisation, BreadcrumbList, Product where applicable)
-- `sitemap.xml` — updated on every save
+### Settings *(admins can change these; editors can view them)*
+- **Search engines** — keep *Let Google and other search engines list this
+  website* on for the live site. If it is ever off, a red warning appears at the
+  top of the SEO screen.
+- **When someone shares a link** — the picture and preview shown when a link is
+  shared on LinkedIn, WhatsApp or Facebook. The example on the right shows how it looks.
+- **Default description** — used for any page without its own description.
+- **Advanced** — technical settings. Leave them unless your developer asks.
+
+### What Google is told
+The list of pages search engines are told about (the *sitemap*). It updates by
+itself whenever you publish, hide or edit something; there is nothing to do here.
 
 ---
 

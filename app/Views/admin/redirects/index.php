@@ -50,7 +50,7 @@ $val     = static fn (string $f) => old($f, $edit[$f] ?? '');
     </div>
     <div class="btn-row">
       <button type="submit" class="btn btn-primary"><?= $editing ? 'Save redirect' : 'Add redirect' ?></button>
-      <?php if ($editing): ?><a href="/admin/redirects" class="btn btn-secondary">Cancel</a><?php endif ?>
+      <?php if ($editing): ?><a href="<?= esc($pager->with(['edit' => null]), 'attr') ?>" class="btn btn-secondary">Cancel</a><?php endif ?>
     </div>
   </form>
 </div>
@@ -75,7 +75,7 @@ $val     = static fn (string $f) => old($f, $edit[$f] ?? '');
             <td style="font-size:.8rem;color:var(--dim)"><?= (int) $r['hits'] ?></td>
             <td>
               <div class="actions">
-                <a href="/admin/redirects?edit=<?= $r['id'] ?>" class="btn btn-secondary" style="padding:.3rem .7rem;font-size:.75rem">Edit</a>
+                <a href="<?= esc($pager->with(['edit' => $r['id']]), 'attr') ?>" class="btn btn-secondary" style="padding:.3rem .7rem;font-size:.75rem">Edit</a>
                 <form method="POST" action="/admin/redirects/delete/<?= $r['id'] ?>" style="display:inline">
                   <?= csrf_field() ?>
                   <button type="submit" class="btn btn-danger" style="padding:.3rem .7rem;font-size:.75rem" data-confirm="Delete the redirect for <?= esc($r['from_path'], 'attr') ?>?">Delete</button>
@@ -88,3 +88,4 @@ $val     = static fn (string $f) => old($f, $edit[$f] ?? '');
     </table>
   </div>
 </div>
+<?= view('admin/partials/pagination', ['pager' => $pager, 'noun' => 'redirects', 'one' => 'redirect']) ?>

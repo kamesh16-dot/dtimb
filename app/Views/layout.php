@@ -13,7 +13,7 @@
   <meta name="description" content="<?= esc($pageDesc, 'attr') ?>">
   <meta name="theme-color" content="#0f1318">
   <title><?= esc($pageTitle) ?></title>
-<?= view('partials/seo_head', ['pageTitle' => $pageTitle, 'pageDesc' => $pageDesc, 'site' => $site]) ?>
+<?= view('partials/seo_head', ['pageTitle' => $pageTitle, 'pageDesc' => $pageDesc, 'site' => $site, 'listPage' => isset($pager) ? $pager->page : 1]) ?>
   <link rel="icon" href="<?= asset_url('favicon.ico') ?>" sizes="any">
   <link rel="icon" type="image/png" sizes="32x32" href="<?= asset_url('favicon-32.png') ?>">
   <link rel="apple-touch-icon" href="<?= asset_url('apple-touch-icon.png') ?>">

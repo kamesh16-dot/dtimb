@@ -193,10 +193,14 @@ class MachineModel extends Model
 
     // ── Admin queries ─────────────────────────────────────────────────────────
 
-    /** Every machine, including unpublished and soft-deleted, for the admin list. */
+    /**
+     * Every machine, including unpublished and soft-deleted, for the admin
+     * list — most recently added first. Sorted by id rather than created_at
+     * because the machines imported at launch have no created_at.
+     */
     public function forAdmin(): array
     {
-        return $this->withDeleted()->orderBy('menu_order', 'ASC')->findAll();
+        return $this->withDeleted()->orderBy('id', 'DESC')->findAll();
     }
 
     /** Undo a soft delete. */

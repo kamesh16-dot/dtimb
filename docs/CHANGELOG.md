@@ -6,6 +6,172 @@ Versioning: `<major>.<phase>.<patch>`.
 
 ---
 
+## [1.24.0] — 2026-10-18 — Media Library: safe deletes, photo picker, descriptions
+
+### Fixed
+- **Photos live on the website could be deleted.** "In use" only counted
+  machine cards, hero slides and news, so the 28 photos on product pages and
+  the ones built into the page design showed as unused. `App\Libraries\MediaUsage`
+  now checks product pages (stored content and the built-in copies in
+  `app/Data`), the page design, the SEO sharing picture and news too, and a
+  photo in use cannot be deleted. The home gallery is listed as information
+  only, since leaving it breaks nothing
+- Clicking a row whose list sits inside a form (the media cards) did not open
+  its details drawer
+
+### Added
+- **"Choose photo" picker** on every photo field — machines, home banners,
+  news hero and gallery, the SEO sharing picture — instead of typing names
+- **Details drawer** for each photo: preview, where it is used (with links),
+  Copy name, Replace, Edit, Delete
+- **Replace a photo, keeping its name**, so every page using it updates.
+  Image URLs now carry `?v=<file time>` so browsers fetch the new picture
+- **Search, folder filter and sorting**, plus *Not used on any page* and
+  *No description* filters, and a summary of photos, storage and gaps
+- **Descriptions (alt text)** kept separate from the display name, used by
+  `img_tag()` and the home gallery, and counted on the SEO screen. A copy of
+  the display name does not count as a description
+- **Easier uploads**: drag and drop, several photos at once, a preview list
+  with warnings, a note for photos under 1600 px wide, and the space saved
+- **Bulk move and delete**, and **move to another folder** from the edit page,
+  rewriting every reference the CMS holds; empty folders are tidied away
+- **News photos are part of the library** — migration
+  `ImportNewsPhotosToLibrary` adds the four existing ones under the names
+  articles already use; `photo_url()` falls back to the old files for anything
+  not imported. News photos stay out of the home gallery
+- Tests: `Unit/MediaLibraryTest` (7), two more in `Unit/SiteHelperTest`
+
+### Deploy
+- Run `php spark migrate` to bring the news photos into the library
+
+---
+
+## [1.23.1] — 2026-10-18 — Inbox showed "Whoops!"
+
+### Fixed
+- **Every Inbox screen failed with "Whoops! We seem to have hit a snag"** —
+  1.22.0 added a shared `listUrl()` to `AdminController`, and `Inbox` already
+  had a private method of the same name. PHP refuses to load a class that
+  narrows an inherited method's visibility, so the whole Inbox controller
+  failed. Inbox's helper is now `inboxPath()`
+- Checked end to end with a real enquiry and job application sent through the
+  public forms: list, details drawer, open (marks read), CV download, archive
+
+### Added
+- `Unit/AdminControllersLoadTest` loads every admin controller in its own
+  process, so a clash like this fails the test suite instead of a live screen
+
+---
+
+## [1.23.0] — 2026-10-18 — SEO screen redesigned for editors
+
+### Changed
+- **Three tabs instead of one long page**: *Pages in Google* (the checklist),
+  *Settings*, and *What Google is told* (the sitemap)
+- **Checklist opens on what needs work**, with a health bar ("16 of 23 pages
+  look good in Google") and Needs work / Looks good / All pages filters
+- **Each page's drawer shows a Google-style result preview**, the problems in
+  plain words each with "How to fix", and length bars for the title and description
+- **Settings are grouped by what they do** — Search engines, When someone shares
+  a link (with a link-preview mock-up), Default description — with the
+  technical ones under a collapsed *Advanced*. Labels and hints rewritten
+  without jargon ("canonical", "Open Graph", "robots.txt")
+- **Live character counters** on the page form's title and description, and on
+  the default description
+- Findings are reworded and come with a fix (`SeoAudit::problems()`);
+  `Unit/SeoProblemsTest` (6 cases)
+
+### Fixed
+- **Editors saw a settings form they could not save** — saving needs an admin,
+  so it ended on a "not found" page. Editors now see the settings read-only
+- **"Fix" sent people to a form that could not fix the problem** — four machines
+  take their description from stored product-page content the CMS cannot edit.
+  Those findings now say to ask the developer, and the button reads "Edit"
+- A red warning appears on the SEO screen whenever search engines are told to
+  stay away, so a test-site setting cannot quietly de-list the live site
+- User guide's SEO section described features the CMS does not have; rewritten
+
+---
+
+## [1.22.0] — 2026-10-18 — Lists Hub: add and edit on their own page
+
+### Changed
+- **Adding or editing a list item opens its own form page**, like Add Machine,
+  instead of a form under the table: an **+ Add item** button in the list's
+  header, short fields side by side and long ones full width, the error shown
+  under the field it is about, and **Save / Cancel**. Back and Cancel return
+  to the page of the list you came from
+- The details drawer's **Edit** goes to that page
+- New routes: `GET admin/lists/<list>/add` and `GET admin/lists/<list>/edit/<id>`
+
+### Added
+- **Show on the website** checkbox on the item form, so an item can be added
+  hidden — like a machine's Published box
+- Photo key fields suggest the image names in the Media Library as you type
+
+---
+
+## [1.21.0] — 2026-10-18 — Row details drawer; Hero Slides table fixed
+
+### Fixed
+- **Lists Hub tables ran off the screen** — every field of every item was put
+  in its own column, so Hero Slides was ten columns wide with its Hide and
+  Delete buttons cut off, and long text squeezed into narrow columns
+
+### Added
+- **Details drawer** — click (or press Enter on) a row in Lists Hub, Machines,
+  News, Pages, Inbox and SEO to open a panel on the right with everything
+  about it in full: long text, lists, the photo, status — and its actions
+  (Edit, Hide/Show, Delete, Restore, Reply, Archive, Download CV). Closes with
+  Esc, the × button or a click outside
+- Tables now show a few key columns and cut long text to one line; nothing
+  is hidden, it is all in the drawer
+- Lists Hub registry (`Config\Lists`) takes an optional `columns` setting to
+  choose the table columns — Hero Slides shows machine name, caption and metric
+- Machines are listed newest first, with an "Added" column
+
+### Changed
+- Delete confirmations are delegated, so they also work on buttons inside the drawer
+
+---
+
+## [1.20.0] — 2026-10-18 — Pagination everywhere, a plainer dashboard, visible checkboxes
+
+### Added
+- **Pagination on every list** — Machines, News, Pages, Inbox (both tabs),
+  Media Library, each Lists Hub list, Redirects, Users (and removed accounts,
+  paged separately), and the SEO checklist. Each shows "Showing 21–40 of 87",
+  page numbers with gaps (1 … 5 6 7 … 20), and a "Show 10 / 20 / 50 / 100 per
+  page" picker. Filters such as the inbox status survive a page change
+- **Back to the same page after saving** — saving, deleting, restoring,
+  hiding or reordering returns to the page and filter the list was on, not
+  page one. Inline edit forms (Lists, Redirects) keep the page open too
+- **Public `/news` is paginated**, five articles a page. Later pages get their
+  own browser title ("… (Page 2)") and canonical address, so search engines
+  index them instead of folding them into page one
+- `App\Libraries\Paginator`, shared by all of the above, and
+  `Unit/PaginatorTest` (14 cases)
+
+### Changed
+- **Dashboard rewritten in plain language** — a one-line summary, a To do list
+  where each item says why it matters and what its button does, the parts of
+  the site with what each controls, task shortcuts, and recent changes phrased
+  as "who did what". Sign-ins no longer flood the activity list
+- The Inbox pages at the database (LIMIT/OFFSET) rather than loading every
+  message; the other lists are small and are sliced in PHP
+- Admin CSS and JS links carry `?v=<mtime>`, so a stylesheet change reaches
+  browsers without a hard refresh
+
+### Fixed
+- **Checkboxes looked blank whether ticked or not** — the text-box rule set
+  `appearance: none` on every input, so "Published", "Show in the header
+  Products menu", "Active" and the SEO switches showed no tick. Saving always
+  worked; the state was simply invisible
+- The dashboard no longer claims images are "unused" — the count ignored
+  photos used inside product-page galleries
+
+---
+
 ## [1.19.0] — 2026-10-17 — Dashboard rebuilt, and a 500 on the login page fixed
 
 The dashboard showed four counts, six links and a line confirming the database

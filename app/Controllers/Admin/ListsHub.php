@@ -45,19 +45,13 @@ class ListsHub extends AdminController
     {
         $list = $this->list($key);
 
+        $all   = $list->all();
+        $pager = $this->listPage(count($all));
+
         $rows = [];
-        foreach ($list->all() as $row) {
+        foreach ($pager->slice($all) as $row) {
             $rows[] = ['id' => (int) $row['id'], 'is_active' => (int) $row['is_active']]
                     + ['values' => $list->values($row)];
-        }
-
-        $editId = (int) ($this->request->getGet('edit') ?? 0);
-        $edit   = null;
-        if ($editId > 0) {
-            $row = $list->find($editId);
-            if ($row !== null) {
-                $edit = ['id' => $editId, 'values' => $list->values($row)];
-            }
         }
 
         return $this->adminView('admin/lists/manage', [
@@ -65,9 +59,26 @@ class ListsHub extends AdminController
             'list'      => $list,
             'def'       => $list->def(),
             'rows'      => $rows,
-            'edit'      => $edit,
-            'errors'    => session()->getFlashdata('errors') ?? [],
+            'pager'     => $pager,
         ]);
+    }
+
+    public function create(string $key): string
+    {
+        $list = $this->list($key);
+
+        return $this->form($list, null, ['is_active' => 1]);
+    }
+
+    public function edit(string $key, int $id): string
+    {
+        $list = $this->list($key);
+        $row  = $list->find($id);
+        if ($row === null) {
+            throw PageNotFoundException::forPageNotFound();
+        }
+
+        return $this->form($list, $id, $list->values($row) + ['is_active' => (int) $row['is_active']]);
     }
 
     public function store(string $key): RedirectResponse
@@ -81,9 +92,10 @@ class ListsHub extends AdminController
         }
 
         $id = $list->create($values);
+        $list->setActive($id, $this->showOnSite());
         $this->audit('list_create', $list->label(), $id, 'list:' . $key);
 
-        return redirect()->to("/admin/lists/{$key}")->with('success', $list->label() . ' item added.');
+        return $this->toList("/admin/lists/{$key}")->with('success', $list->label() . ' item added.');
     }
 
     public function update(string $key, int $id): RedirectResponse
@@ -100,9 +112,10 @@ class ListsHub extends AdminController
         }
 
         $list->update($id, $values);
+        $list->setActive($id, $this->showOnSite());
         $this->audit('list_update', $list->label(), $id, 'list:' . $key);
 
-        return redirect()->to("/admin/lists/{$key}")->with('success', $list->label() . ' item saved.');
+        return $this->toList("/admin/lists/{$key}")->with('success', $list->label() . ' item saved.');
     }
 
     public function delete(string $key, int $id): RedirectResponse
@@ -120,7 +133,7 @@ class ListsHub extends AdminController
         $list->delete($id);
         $this->audit('list_delete', $list->label(), $id, 'list:' . $key);
 
-        return redirect()->to("/admin/lists/{$key}")->with('success', 'Item deleted.');
+        return $this->toList("/admin/lists/{$key}")->with('success', 'Item deleted.');
     }
 
     public function toggle(string $key, int $id): RedirectResponse
@@ -135,7 +148,7 @@ class ListsHub extends AdminController
         $list->setActive($id, $now);
         $this->audit($now ? 'list_show' : 'list_hide', $list->label(), $id, 'list:' . $key);
 
-        return redirect()->to("/admin/lists/{$key}")
+        return $this->toList("/admin/lists/{$key}")
                          ->with('success', $now ? 'Item shown on the site.' : 'Item hidden from the site.');
     }
 
@@ -149,10 +162,34 @@ class ListsHub extends AdminController
         $list->move($id, $direction === 'up' ? 'up' : 'down');
         $this->audit('list_reorder', $list->label(), $id, 'list:' . $key);
 
-        return redirect()->to("/admin/lists/{$key}");
+        return $this->toList("/admin/lists/{$key}");
     }
 
     // ── Internals ─────────────────────────────────────────────────────────────
+
+    /** The add / edit page, laid out like the machine form. */
+    private function form(ListItemModel $list, ?int $id, array $values): string
+    {
+        $listPath = '/admin/lists/' . $list->key();
+
+        return $this->adminView('admin/lists/form', [
+            'pageTitle' => ($id === null ? 'Add to ' : 'Edit — ') . $list->label(),
+            'list'      => $list,
+            'def'       => $list->def(),
+            'id'        => $id,
+            'values'    => $values,
+            'action'    => $listPath . ($id === null ? '/add' : '/edit/' . $id),
+            'backUrl'   => $this->listUrl($listPath),
+            'images'    => array_keys(timb_manifest()),
+            'errors'    => session()->getFlashdata('errors') ?? [],
+        ]);
+    }
+
+    /** The "Show on the website" checkbox; absent from the post when unticked. */
+    private function showOnSite(): bool
+    {
+        return (string) $this->request->getPost('is_active') === '1';
+    }
 
     private function list(string $key): ListItemModel
     {

@@ -19,6 +19,9 @@ use CodeIgniter\Config\BaseConfig;
  *   fields               key => [label, type, required, hint, options]
  *   payload              ordered field keys stored positionally in `payload`
  *   payloadScalar        true when `payload` holds a bare value, not an array
+ *   columns              optional: the fields shown in the admin table (the
+ *                        rest are in each row's details drawer); defaults to
+ *                        the first two
  *
  * Field types:
  *   text, textarea, number, decimal
@@ -48,6 +51,7 @@ class Lists extends BaseConfig
             'description' => 'The rotating banner at the top of the home page.',
             'table'       => 'hero_slides',
             'consumer'    => 'Home page, hero carousel',
+            'columns'     => ['name', 'label', 'metric'],
             'fields'      => [
                 'image_key'  => ['label' => 'Photo key', 'type' => 'text', 'required' => true, 'hint' => 'e.g. tube-mill/mill-1'],
                 'label'      => ['label' => 'Photo caption', 'type' => 'text', 'required' => true],
@@ -117,6 +121,7 @@ class Lists extends BaseConfig
             'label'       => 'Industries',
             'description' => 'The industry sectors TIMB serves, with their sub-items.',
             'table'       => 'industries',
+            'columns'     => ['name', 'description'],
             'consumer'    => 'Industries page',
             'fields'      => [
                 'slug'               => ['label' => 'Key', 'type' => 'text', 'required' => true, 'hint' => 'Lowercase, hyphens only.'],

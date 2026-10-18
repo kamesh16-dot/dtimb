@@ -6,7 +6,7 @@
 <title><?= esc($pageTitle ?? 'Dashboard') ?> — TIMB CMS</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="/admin-assets/css/admin.css">
+<link rel="stylesheet" href="<?= asset_url('admin-assets/css/admin.css') ?>">
 </head>
 <body class="admin-body">
 
@@ -135,6 +135,19 @@
 
 <div class="sidebar-overlay" id="sidebarOverlay"></div>
 
-<script src="/admin-assets/js/admin.js"></script>
+<?php // Row details, filled from a <template> when a table row is clicked (admin/partials/drawer.php). ?>
+<div class="drawer-backdrop" id="drawerBackdrop" hidden></div>
+<aside class="drawer" id="drawer" role="dialog" aria-modal="true" aria-labelledby="drawerTitle" hidden>
+  <header class="drawer-head">
+    <div>
+      <h2 id="drawerTitle"></h2>
+      <p id="drawerSubtitle"></p>
+    </div>
+    <button type="button" class="drawer-close" id="drawerClose" aria-label="Close details">&times;</button>
+  </header>
+  <div class="drawer-body" id="drawerBody"></div>
+</aside>
+
+<script src="<?= asset_url('admin-assets/js/admin.js') ?>"></script>
 </body>
 </html>

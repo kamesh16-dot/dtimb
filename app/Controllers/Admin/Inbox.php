@@ -37,13 +37,16 @@ class Inbox extends AdminController
     public function enquiries(): string
     {
         $status = $this->status();
+        $counts = $this->enquiries->counts();
+        $pager  = $this->listPage($counts[$status ?? 'all'] ?? 0);
 
         return $this->adminView('admin/inbox/enquiries', [
             'pageTitle' => 'Inbox — Enquiries',
             'tab'       => 'enquiries',
             'status'    => $status,
-            'rows'      => $this->enquiries->withStatus($status),
-            'counts'    => $this->enquiries->counts(),
+            'rows'      => $this->enquiries->withStatus($status, $pager->perPage, $pager->offset),
+            'counts'    => $counts,
+            'pager'     => $pager,
             'otherNew'  => $this->applications->counts()['new'] ?? 0,
         ]);
     }
@@ -51,13 +54,16 @@ class Inbox extends AdminController
     public function applications(): string
     {
         $status = $this->status();
+        $counts = $this->applications->counts();
+        $pager  = $this->listPage($counts[$status ?? 'all'] ?? 0);
 
         return $this->adminView('admin/inbox/applications', [
             'pageTitle' => 'Inbox — Applications',
             'tab'       => 'applications',
             'status'    => $status,
-            'rows'      => $this->applications->withStatus($status),
-            'counts'    => $this->applications->counts(),
+            'rows'      => $this->applications->withStatus($status, $pager->perPage, $pager->offset),
+            'counts'    => $counts,
+            'pager'     => $pager,
             'otherNew'  => $this->enquiries->counts()['new'] ?? 0,
             'model'     => $this->applications,
         ]);
@@ -104,7 +110,7 @@ class Inbox extends AdminController
 
         $this->audit('inbox_status', $type . ' → ' . $status, $id, 'inbox');
 
-        return redirect()->to($this->listUrl($type))
+        return $this->toList($this->inboxPath($type))
                          ->with('success', 'Moved to ' . (InboxModel::LABELS[$status] ?? $status) . '.');
     }
 
@@ -134,7 +140,7 @@ class Inbox extends AdminController
 
         $file = $this->applications->cvFile($row);
         if ($file === null) {
-            return redirect()->to('/admin/inbox/applications')
+            return $this->toList('/admin/inbox/applications')
                              ->with('error', 'That CV file is no longer on the server.');
         }
 
@@ -165,7 +171,8 @@ class Inbox extends AdminController
         };
     }
 
-    private function listUrl(string $type): string
+    /** The list a message of this type belongs to. */
+    private function inboxPath(string $type): string
     {
         return $type === 'application' ? '/admin/inbox/applications' : '/admin/inbox';
     }

@@ -3,6 +3,7 @@
 namespace App\Controllers\Admin;
 
 use App\Controllers\BaseController;
+use App\Libraries\Paginator;
 use App\Models\UserModel;
 
 /**
@@ -60,6 +61,49 @@ abstract class AdminController extends BaseController
         if ($role === 'admin' && $userRole !== 'admin') {
             throw \CodeIgniter\Exceptions\PageNotFoundException::forPageNotFound();
         }
+    }
+
+    /**
+     * Paginate the list this screen shows, and remember the page and filters
+     * it is on so toList() can bring the user back to the same place after a
+     * save, delete or restore.
+     */
+    protected function listPage(int $total, int $defaultPerPage = 20, string $pageParam = 'page', string $perParam = 'per'): Paginator
+    {
+        // "edit" opens an inline form; coming back after the save must not reopen it.
+        parse_str((string) $this->request->getUri()->getQuery(), $query);
+        unset($query['edit']);
+        session()->set('admin_list_return.' . timb_path(), http_build_query($query));
+
+        return Paginator::fromRequest($total, $defaultPerPage, $pageParam, $perParam);
+    }
+
+    /**
+     * Redirect to a list screen, on the page and with the filters it was last
+     * viewed with. $firstPage keeps the filters but starts from page 1 — for
+     * lists sorted newest first, where something just added appears there.
+     */
+    protected function toList(string $path, bool $firstPage = false): \CodeIgniter\HTTP\RedirectResponse
+    {
+        return redirect()->to($this->listUrl($path, $firstPage));
+    }
+
+    /**
+     * A list screen's address with the page and filters it was last viewed
+     * with — for redirects, and for Back and Cancel links on its forms.
+     */
+    protected function listUrl(string $path, bool $firstPage = false): string
+    {
+        $path  = '/' . trim($path, '/');
+        $query = (string) (session()->get('admin_list_return.' . $path) ?? '');
+
+        if ($firstPage) {
+            parse_str($query, $params);
+            unset($params['page']);
+            $query = http_build_query($params);
+        }
+
+        return $path . ($query !== '' ? '?' . $query : '');
     }
 
     /** Flash + redirect back */

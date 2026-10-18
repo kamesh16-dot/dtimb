@@ -26,7 +26,7 @@ $this->section('content');
       <div class="news-more" id="<?= esc($id, 'attr') ?>-more" role="region" aria-labelledby="<?= esc($id, 'attr') ?>-h">
         <div class="news-more-in">
           <?php if (! empty($a['hero'])): ?>
-            <figure class="news-hero"><img src="<?= base_url('assets/img/' . $a['hero'][0] . '.webp') ?>" alt="<?= esc($a['hero'][1], 'attr') ?>" loading="lazy" decoding="async"></figure>
+            <figure class="news-hero"><img src="<?= esc(photo_url($a['hero'][0], '1600'), 'attr') ?>" alt="<?= esc($a['hero'][1], 'attr') ?>" loading="lazy" decoding="async"></figure>
           <?php endif; ?>
 
           <div class="news-body">
@@ -36,7 +36,7 @@ $this->section('content');
             <?php if (! empty($a['gallery'])): ?>
               <div class="news-gallery">
                 <?php foreach ($a['gallery'] as [$key, $alt]): ?>
-                  <figure><img src="<?= base_url('assets/img/' . $key . '.webp') ?>" alt="<?= esc($alt, 'attr') ?>" loading="lazy" decoding="async"></figure>
+                  <figure><img src="<?= esc(photo_url($key, '640'), 'attr') ?>" alt="<?= esc($alt, 'attr') ?>" loading="lazy" decoding="async"></figure>
                 <?php endforeach; ?>
               </div>
             <?php endif; ?>
@@ -47,6 +47,8 @@ $this->section('content');
       </div>
     </article>
   <?php endforeach; ?>
+
+  <?= isset($pager) ? view('partials/pagination', ['pager' => $pager, 'noun' => 'articles', 'one' => 'article']) : '' ?>
 </section>
 
 <?= view('partials/page_cta', ['site' => $site, 'headline' => 'Have news to share with us?', 'text' => 'Talk to our team about your project.', 'subject' => 'Enquiry - TIMB']) ?>

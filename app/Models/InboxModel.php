@@ -30,9 +30,10 @@ abstract class InboxModel extends Model
 
     /**
      * Messages for one status, newest first. An unknown or empty status
-     * returns everything, which is what the "All" tab asks for.
+     * returns everything, which is what the "All" tab asks for. $limit 0
+     * means no limit; with $offset it fetches one page.
      */
-    public function withStatus(?string $status): array
+    public function withStatus(?string $status, int $limit = 0, int $offset = 0): array
     {
         $builder = $this->orderBy('created_at', 'DESC')->orderBy('id', 'DESC');
 
@@ -40,7 +41,7 @@ abstract class InboxModel extends Model
             $builder->where('status', $status);
         }
 
-        return $builder->findAll();
+        return $builder->findAll($limit, $offset);
     }
 
     /** How many messages sit in each status, plus the total. */

@@ -27,14 +27,16 @@ class Redirects extends AdminController
 
     public function index(): string
     {
-        $rows = $this->redirects->allOrdered();
+        $rows  = $this->redirects->allOrdered();
+        $pager = $this->listPage(count($rows));
 
         $editId = (int) ($this->request->getGet('edit') ?? 0);
         $edit   = $editId > 0 ? $this->redirects->find($editId) : null;
 
         return $this->adminView('admin/redirects/index', [
             'pageTitle' => 'Redirects',
-            'rows'      => $rows,
+            'rows'      => $pager->slice($rows),
+            'pager'     => $pager,
             'edit'      => $edit,
             'chained'   => $this->redirects->chained(),
             'codes'     => RedirectModel::CODES,
@@ -61,7 +63,7 @@ class Redirects extends AdminController
 
         $this->audit('redirect_create', $from . ' → ' . $to, (int) $this->redirects->getInsertID(), 'redirect');
 
-        return redirect()->to('/admin/redirects')->with('success', 'Redirect added.');
+        return $this->toList('/admin/redirects')->with('success', 'Redirect added.');
     }
 
     public function update(int $id): RedirectResponse
@@ -85,7 +87,7 @@ class Redirects extends AdminController
 
         $this->audit('redirect_update', $from . ' → ' . $to, $id, 'redirect');
 
-        return redirect()->to('/admin/redirects')->with('success', 'Redirect saved.');
+        return $this->toList('/admin/redirects')->with('success', 'Redirect saved.');
     }
 
     public function delete(int $id): RedirectResponse
@@ -100,7 +102,7 @@ class Redirects extends AdminController
         $this->redirects->delete($id);
         $this->audit('redirect_delete', (string) $row['from_path'], $id, 'redirect');
 
-        return redirect()->to('/admin/redirects')->with('success', 'Redirect deleted.');
+        return $this->toList('/admin/redirects')->with('success', 'Redirect deleted.');
     }
 
     /** @return array{0:string,1:string,2:int} */
