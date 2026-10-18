@@ -1,4 +1,5 @@
 <?php
+
 /** @var \Config\Site $site */
 /** @var list<array{key:string,alt:string}> $gallery */
 $this->extend('layout');
@@ -35,7 +36,7 @@ $rows  = [array_slice($gallery, 0, $half), array_slice($gallery, $half)];
     <ul class="rail-list">
       <?php foreach ($site->heroSlides as $i => $slide): ?>
         <li>
-          <button type="button" class="rail-item<?= $i === 0 ? ' is-active' : '' ?>" data-rail="<?= $i ?>"<?= $i === 0 ? ' aria-current="true"' : '' ?> aria-label="Show <?= esc($slide['label'], 'attr') ?>">
+          <button type="button" class="rail-item<?= $i === 0 ? ' is-active' : '' ?>" data-rail="<?= $i ?>" <?= $i === 0 ? ' aria-current="true"' : '' ?> aria-label="Show <?= esc($slide['label'], 'attr') ?>">
             <?= img_tag($slide['image'], '640', '', ['class' => 'rail-thumb', 'loading' => 'lazy', 'role' => 'presentation']) ?>
             <span class="rail-text">
               <strong><?= esc($slide['name']) ?></strong>
@@ -173,22 +174,22 @@ $rows  = [array_slice($gallery, 0, $half), array_slice($gallery, $half)];
     <ul class="sector-list">
       <?php foreach ($site->industries as $i => $name): ?>
         <li data-reveal style="--d:<?= $i * 70 ?>ms"><a class="sector" href="<?= base_url('industries') ?>">
-          <strong><?= esc($name) ?></strong>
-          <i aria-hidden="true"></i>
-        </a></li>
+            <strong><?= esc($name) ?></strong>
+            <i aria-hidden="true"></i>
+          </a></li>
       <?php endforeach; ?>
     </ul>
   </div>
 </section>
 
 <?php
-  // India map: pins + callouts (positions come from Config\Site::$network)
-  $pins = [];
-  foreach ($site->network as $n) {
-      [$x, $y] = india_xy($n['lat'], $n['lon']);
-      $pins[] = $n + ['x' => $x, 'y' => $y];
-  }
-  $step = count($pins) <= 4 ? 1100 : 90; // ms between pins appearing
+// India map: pins + callouts (positions come from Config\Site::$network)
+$pins = [];
+foreach ($site->network as $n) {
+  [$x, $y] = india_xy($n['lat'], $n['lon']);
+  $pins[] = $n + ['x' => $x, 'y' => $y];
+}
+$step = count($pins) <= 4 ? 1100 : 90; // ms between pins appearing
 ?>
 <section class="network sec" id="network" aria-labelledby="network-heading">
   <div class="network-grid">
@@ -216,7 +217,7 @@ $rows  = [array_slice($gallery, 0, $half), array_slice($gallery, $half)];
       <?= view('partials/india_map') ?>
       <svg class="net-leads" viewBox="0 0 1000 1122" preserveAspectRatio="none" aria-hidden="true" focusable="false">
         <?php foreach ($pins as $i => $n): ?>
-          <path class="lead lead-<?= $n['type'] ?>" style="--i:<?= $i ?>" pathLength="1" d="M<?= round($n['x'] * 10, 1) ?> <?= round($n['y'] * 11.2226, 1) ?> L<?= $n['callout'][0] * 10 - 8 ?> <?= round($n['callout'][1] * 11.2226, 1) ?>"/>
+          <path class="lead lead-<?= $n['type'] ?>" style="--i:<?= $i ?>" pathLength="1" d="M<?= round($n['x'] * 10, 1) ?> <?= round($n['y'] * 11.2226, 1) ?> L<?= $n['callout'][0] * 10 - 8 ?> <?= round($n['callout'][1] * 11.2226, 1) ?>" />
         <?php endforeach; ?>
       </svg>
       <?php foreach ($pins as $i => $n): ?>
@@ -239,7 +240,7 @@ $rows  = [array_slice($gallery, 0, $half), array_slice($gallery, $half)];
 </section>
 <div class="reel" aria-label="Photo gallery">
   <?php foreach ($rows as $r => $row): ?>
-    <div class="reel-row<?= $r ? ' is-reverse' : '' ?>" data-marquee data-speed="<?= $r ? 90 : 110 ?>">
+    <div class="reel-row<?= $r ? ' is-reverse' : '' ?>" data-marquee data-speed="<?= $r ? 35 : 45 ?>">
       <?php foreach ($row as $g): ?><?= img_tag($g['key'], '640', $g['alt'], ['loading' => 'lazy']) ?><?php endforeach; ?>
     </div>
   <?php endforeach; ?>
