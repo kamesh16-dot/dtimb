@@ -6,6 +6,31 @@ Versioning: `<major>.<phase>.<patch>`.
 
 ---
 
+## [1.27.1] — 2026-10-20 — Housekeeping: unused files removed
+
+### Removed
+- `env.example` — an old template that advised leaving `app.baseURL` unset
+  (the Host-header weakness fixed in 1.25.0); `.env.example` replaces it
+- `env` — CodeIgniter's generic sample; `.env.example` is the project's
+- `builds`, `preload.php` — CodeIgniter starter files never used here
+- `public/htaccess` — an identical copy of `public/.htaccess`, which is the one
+  the web server reads
+- The `login_attempts` table (migration `DropLoginAttempts`): created but never
+  read or written; sign-in limits live on the user row and in the throttler
+- A Gmail password that had been typed into `.env.example`, a committed file.
+  It was never valid, so nothing needed revoking
+
+### Changed
+- `README.md` rewritten for the CMS: running it, where things are, the docs
+
+### Cleaned (not in git)
+- Old logs (55 MB of test-run noise) and 158 expired session files
+
+### Deploy
+- `php spark migrate` (drops `login_attempts`)
+
+---
+
 ## [1.27.0] — 2026-10-20 — Reply from the Inbox
 
 ### Added
