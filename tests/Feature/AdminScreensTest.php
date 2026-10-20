@@ -28,6 +28,7 @@ final class AdminScreensTest extends CIUnitTestCase
      */
     protected function tearDown(): void
     {
+        \App\Libraries\Notifier::$mailerFactory = null;
         $this->regressDatabase();
         parent::tearDown();
     }
@@ -274,5 +275,137 @@ final class AdminScreensTest extends CIUnitTestCase
         $row = $this->db->table('machines')->where('id', $id)->get()->getRow();
         $this->assertSame($before, $row->details_json);
         $this->assertSame('Paged Machine', $row->name, 'a refused save must change nothing');
+    }
+
+    // ── Replies from the Inbox ───────────────────────────────────────────────
+
+    /** @var list<\CodeIgniter\Test\Mock\MockEmail> emails "sent" during a test */
+    private array $sent = [];
+
+    /** Email set up, with every message captured instead of sent. */
+    private function captureMail(): void
+    {
+        $c = config('Email');
+        $c->protocol   = 'smtp';
+        $c->SMTPHost   = 'smtp.example.com';
+        $c->SMTPUser   = 'site@example.com';
+        $c->SMTPPass   = 'secret';
+        $c->fromEmail  = 'site@example.com';
+        $c->recipients = 'team@example.com';
+
+        $this->sent = [];
+        \App\Libraries\Notifier::$mailerFactory = function () {
+            $mock = new \CodeIgniter\Test\Mock\MockEmail(config('Email'));
+            $this->sent[] = $mock;
+
+            return $mock;
+        };
+    }
+
+    private function enquiry(array $extra = []): int
+    {
+        $this->db->table('enquiries')->insert($extra + [
+            'name' => 'Priya Raman', 'email' => 'priya@example.com', 'phone' => '', 'company' => 'Sundaram Tubes',
+            'interest' => 'Tube Mill', 'message' => 'Please send a quotation.', 'ip' => '127.0.0.1',
+            'status' => 'new', 'created_at' => date('Y-m-d H:i:s'),
+        ]);
+
+        return (int) $this->db->insertID();
+    }
+
+    public function testAReplyIsEmailedToTheVisitorAndKept(): void
+    {
+        $this->captureMail();
+        $admin = $this->user('admin', ['name' => 'Kamesh K', 'email' => 'kamesh@example.com']);
+        $id    = $this->enquiry();
+
+        $this->as($admin)->postForm("admin/inbox/reply/enquiry/{$id}", [
+            'subject' => 'Re: your enquiry to TIMB about Tube Mill',
+            'body'    => "Dear Priya,\n\nOur quotation is attached.\n\nKind regards,\nKamesh",
+            'quote'   => '1',
+            'copy'    => '1',
+        ])->assertRedirect();
+
+        $this->assertCount(1, $this->sent);
+        $mail = $this->sent[0]->archive;
+        $this->assertSame(['priya@example.com'], $mail['recipients']);
+        $this->assertStringContainsString('team@example.com', $mail['headers']['Reply-To'], 'answers must reach the team');
+        $this->assertStringContainsString('kamesh@example.com', implode(',', (array) $mail['BCCArray']), 'the copy to the sender');
+        $this->assertStringContainsString('Our quotation is attached.', $mail['body']);
+        $this->assertStringContainsString('Please send a quotation.', $mail['body'], 'their message is quoted');
+        $this->assertStringContainsString('TI Machine Building', $mail['body'], 'company signature');
+
+        $this->seeInDatabase('inbox_replies', ['type' => 'enquiry', 'message_id' => $id, 'to_email' => 'priya@example.com', 'user_name' => 'Kamesh K']);
+        $this->seeInDatabase('enquiries', ['id' => $id, 'status' => 'read']);
+
+        $page = $this->as($admin)->get("admin/inbox/message/enquiry/{$id}");
+        $page->assertSee('Replies sent (1)');
+        $page->assertSee('Our quotation is attached.');
+    }
+
+    public function testAnEmptyReplyIsNotSent(): void
+    {
+        $this->captureMail();
+        $admin = $this->user();
+        $id    = $this->enquiry();
+
+        $this->as($admin)->postForm("admin/inbox/reply/enquiry/{$id}", ['subject' => 'Hi', 'body' => ''])->assertRedirect();
+
+        $this->assertCount(0, array_filter($this->sent, static fn ($m) => ! empty($m->archive)));
+        $this->dontSeeInDatabase('inbox_replies', ['message_id' => $id]);
+    }
+
+    public function testNothingIsKeptWhenEmailIsNotSetUp(): void
+    {
+        $admin = $this->user();
+        $id    = $this->enquiry();
+        config('Email')->SMTPHost = '';
+
+        $this->as($admin)->postForm("admin/inbox/reply/enquiry/{$id}", ['subject' => 'Hi there', 'body' => 'A reply that cannot go anywhere.'])->assertRedirect();
+
+        $this->dontSeeInDatabase('inbox_replies', ['message_id' => $id]);
+    }
+
+    public function testEditorsCanAnswerEnquiriesButNotApplications(): void
+    {
+        $this->captureMail();
+        $editor = $this->user('editor');
+        $id     = $this->enquiry();
+
+        $this->as($editor)->postForm("admin/inbox/reply/enquiry/{$id}", ['subject' => 'Re: enquiry', 'body' => 'Thank you, we will call you.'])->assertRedirect();
+        $this->seeInDatabase('inbox_replies', ['type' => 'enquiry', 'message_id' => $id]);
+
+        $this->db->table('career_applications')->insert([
+            'name' => 'Arjun', 'email' => 'arjun@example.com', 'phone' => '123456', 'area' => 'Design',
+            'cv_path' => '', 'status' => 'new', 'created_at' => date('Y-m-d H:i:s'),
+        ]);
+        $app = (int) $this->db->insertID();
+        $this->assertNotFound(fn () => $this->as($editor)->postForm("admin/inbox/reply/application/{$app}", ['subject' => 'Re', 'body' => 'Hello there, Arjun.']), 'an editor replying to an application');
+        $this->dontSeeInDatabase('inbox_replies', ['type' => 'application', 'message_id' => $app]);
+    }
+
+    public function testDeletingAMessageRemovesItsReplies(): void
+    {
+        $this->captureMail();
+        $admin = $this->user();
+        $id    = $this->enquiry();
+        $this->as($admin)->postForm("admin/inbox/reply/enquiry/{$id}", ['subject' => 'Re', 'body' => 'Thank you for writing.'])->assertRedirect();
+
+        $this->as($admin)->postForm("admin/inbox/delete/enquiry/{$id}")->assertRedirect();
+
+        $this->dontSeeInDatabase('inbox_replies', ['message_id' => $id]);
+    }
+
+    public function testWhatAnAdminTypesIsEscapedInTheReply(): void
+    {
+        $this->captureMail();
+        $admin = $this->user();
+        $id    = $this->enquiry(['message' => '<img src=x onerror=alert(1)>']);
+
+        $this->as($admin)->postForm("admin/inbox/reply/enquiry/{$id}", ['subject' => 'Re', 'body' => '<script>alert(1)</script> Thanks.', 'quote' => '1'])->assertRedirect();
+
+        $body = $this->sent[0]->archive['body'];
+        $this->assertStringNotContainsString('<script>alert(1)', $body);
+        $this->assertStringNotContainsString('<img src=x', $body);
     }
 }

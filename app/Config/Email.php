@@ -4,11 +4,31 @@ namespace Config;
 
 use CodeIgniter\Config\BaseConfig;
 
+/**
+ * Outgoing email. Every value is set in .env (the email.* block), so moving to
+ * a different mailbox before deployment is one edit there — nothing in here.
+ *
+ *   fromEmail   the address the alerts come from (with Gmail: the account itself)
+ *   recipients  who is told about new enquiries and applications; several
+ *               addresses separated by commas. Empty: the contact email from
+ *               Admin → Settings.
+ */
 class Email extends BaseConfig
 {
     public string $fromEmail  = '';
     public string $fromName   = '';
     public string $recipients = '';
+
+    public function __construct()
+    {
+        parent::__construct();
+
+        // Gmail shows an App Password as "abcd efgh ijkl mnop"; the spaces are
+        // not part of it, and pasting it as shown is the obvious thing to do.
+        if (strtolower($this->SMTPHost) === 'smtp.gmail.com') {
+            $this->SMTPPass = str_replace(' ', '', $this->SMTPPass);
+        }
+    }
 
     /**
      * The "user agent"

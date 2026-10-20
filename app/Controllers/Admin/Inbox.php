@@ -2,9 +2,11 @@
 
 namespace App\Controllers\Admin;
 
+use App\Libraries\Notifier;
 use App\Models\ApplicationModel;
 use App\Models\EnquiryModel;
 use App\Models\InboxModel;
+use App\Models\InboxReplyModel;
 use CodeIgniter\Exceptions\PageNotFoundException;
 use CodeIgniter\HTTP\RedirectResponse;
 
@@ -40,11 +42,14 @@ class Inbox extends AdminController
         $counts = $this->enquiries->counts();
         $pager  = $this->listPage($counts[$status ?? 'all'] ?? 0);
 
+        $rows = $this->enquiries->withStatus($status, $pager->perPage, $pager->offset);
+
         return $this->adminView('admin/inbox/enquiries', [
             'pageTitle' => 'Inbox — Enquiries',
             'tab'       => 'enquiries',
             'status'    => $status,
-            'rows'      => $this->enquiries->withStatus($status, $pager->perPage, $pager->offset),
+            'rows'      => $rows,
+            'replied'   => $this->repliedFor('enquiry', $rows),
             'counts'    => $counts,
             'pager'     => $pager,
             // Editors never see applications, so no count for them either.
@@ -61,11 +66,14 @@ class Inbox extends AdminController
         $counts = $this->applications->counts();
         $pager  = $this->listPage($counts[$status ?? 'all'] ?? 0);
 
+        $rows = $this->applications->withStatus($status, $pager->perPage, $pager->offset);
+
         return $this->adminView('admin/inbox/applications', [
             'pageTitle' => 'Inbox — Applications',
             'tab'       => 'applications',
             'status'    => $status,
-            'rows'      => $this->applications->withStatus($status, $pager->perPage, $pager->offset),
+            'rows'      => $rows,
+            'replied'   => $this->repliedFor('application', $rows),
             'counts'    => $counts,
             'pager'     => $pager,
             'otherNew'  => $this->enquiries->counts()['new'] ?? 0,
@@ -97,6 +105,15 @@ class Inbox extends AdminController
         if ($type === 'application') {
             $data['hasCv'] = $this->applications->cvFile($row) !== null;
         }
+
+        $draft = Notifier::replyDraft($type, $row, (string) ($this->adminUser['name'] ?? ''));
+        $data += [
+            'replies'     => $this->safeReplies($type, $id),
+            'draft'       => $draft,
+            'mailReady'   => Notifier::status(),
+            'senderEmail' => (string) ($this->adminUser['email'] ?? ''),
+            'errors'      => session()->getFlashdata('errors') ?? [],
+        ];
 
         return $this->adminView('admin/inbox/show', $data);
     }
@@ -160,6 +177,72 @@ class Inbox extends AdminController
     }
 
     /**
+     * Email a reply to the person who wrote in, from the message page.
+     * Editors may answer enquiries; applications stay admin-only.
+     */
+    public function reply(string $type, int $id): RedirectResponse
+    {
+        [$model] = $this->target($type);
+        $this->requireAdminFor($type);
+
+        $row = $model->find($id);
+        if ($row === null) {
+            throw PageNotFoundException::forPageNotFound();
+        }
+
+        $subject = trim((string) $this->request->getPost('subject'));
+        $body    = trim((string) $this->request->getPost('body'));
+        $errors  = [];
+        if ($subject === '' || mb_strlen($subject) > 200) {
+            $errors['subject'] = 'Give the reply a subject (up to 200 characters).';
+        }
+        if (mb_strlen($body) < 10) {
+            $errors['body'] = 'Write the reply before sending it.';
+        } elseif (mb_strlen($body) > 10000) {
+            $errors['body'] = 'Keep the reply under 10,000 characters.';
+        }
+        if ($errors !== []) {
+            return redirect()->to(admin_url('inbox/message/' . $type . '/' . $id) . '#reply')->withInput()
+                ->with('errors', $errors)->with('error', 'The reply was not sent — please check it.');
+        }
+
+        $sender = ['name' => (string) ($this->adminUser['name'] ?? ''), 'email' => (string) ($this->adminUser['email'] ?? '')];
+        $result = Notifier::reply(
+            $type, $row, $subject, $body,
+            $this->request->getPost('quote') !== null,
+            $sender,
+            $this->request->getPost('copy') !== null
+        );
+
+        if (! $result['ok']) {
+            return redirect()->to(admin_url('inbox/message/' . $type . '/' . $id) . '#reply')->withInput()
+                ->with('error', 'The reply was not sent. ' . $result['detail']);
+        }
+
+        // Kept only once it has really gone, so the history never shows a
+        // reply the person did not receive.
+        try {
+            (new InboxReplyModel())->insert([
+                'type'       => $type,
+                'message_id' => $id,
+                'user_id'    => $this->adminUser['id'] ?? null,
+                'user_name'  => $sender['name'],
+                'to_email'   => (string) $row['email'],
+                'subject'    => $subject,
+                'body'       => $body,
+            ]);
+        } catch (\Throwable $e) {
+            log_message('error', 'Reply sent but not recorded: ' . $e->getMessage());
+        }
+        if ($row['status'] === 'new') {
+            $model->setStatus($id, 'read');
+        }
+        $this->audit('inbox_reply', $type . ' to ' . $row['name'], $id, 'inbox');
+
+        return redirect()->to(admin_url('inbox/message/' . $type . '/' . $id) . '#replies')->with('success', $result['detail']);
+    }
+
+    /**
      * Remove a message for good — with its CV, for an application. Admins
      * only. People can ask for their details to be deleted, and nothing here
      * needs keeping once it has been dealt with.
@@ -178,6 +261,11 @@ class Inbox extends AdminController
             @unlink($file);
         }
         $model->delete($id);
+        try {
+            (new InboxReplyModel())->forgetMessage($type, $id);
+        } catch (\Throwable $e) {
+            log_message('error', 'Reply history not removed: ' . $e->getMessage());
+        }
         $this->audit('inbox_delete', $type . ' from ' . $row['name'], $id, 'inbox');
 
         return $this->toList($this->inboxPath($type))
@@ -185,6 +273,28 @@ class Inbox extends AdminController
     }
 
     // ── Internals ─────────────────────────────────────────────────────────────
+
+    /** The reply history, or none if the table is unreadable. */
+    private function safeReplies(string $type, int $id): array
+    {
+        try {
+            return (new InboxReplyModel())->forMessage($type, $id);
+        } catch (\Throwable $e) {
+            log_message('error', 'Reply history unavailable: ' . $e->getMessage());
+
+            return [];
+        }
+    }
+
+    /** message id => when last replied, for the list's "Replied" label. */
+    private function repliedFor(string $type, array $rows): array
+    {
+        try {
+            return (new InboxReplyModel())->lastReplied($type, array_map('intval', array_column($rows, 'id')));
+        } catch (\Throwable $e) {
+            return [];
+        }
+    }
 
     /** Applications and CVs are admin-only; enquiries are open to editors. */
     private function requireAdminFor(string $type): void

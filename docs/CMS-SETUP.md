@@ -61,6 +61,26 @@ Edit `.env`. The template explains every value; the ones that matter most:
 | `encryption.key` | Filled in by the next step. |
 | `email.*` | Without it nobody is emailed when an enquiry arrives (it is still saved in the Inbox). |
 
+### Email alerts (Gmail)
+
+Every enquiry and job application is emailed (HTML, with the CV attached for
+applications; *Reply* goes straight to the visitor). The `email.*` block in
+`.env` is the only place it is configured — currently the test mailbox
+`smtptest897@gmail.com`. **Before going live**, change that address in the three
+places and the password, then use **Admin → Settings → Send a test email**.
+
+With a Gmail account, `email.SMTPPass` must be an **App Password**, not the
+normal password:
+
+1. Sign in to the Gmail account → **Google Account → Security**.
+2. Turn on **2-Step Verification** (App Passwords need it).
+3. **2-Step Verification → App passwords** → create one named "TIMB website".
+4. Copy the 16 characters into `email.SMTPPass = '…'` (spaces are fine).
+
+A company mail server works the same way: set `email.SMTPHost`, `SMTPPort` and
+`SMTPCrypto` to its values (`587` + `tls`, or `465` + `ssl`).
+`email.recipients` can list several people, separated by commas.
+
 ### 2d. Generate the encryption key
 
 ```bash
@@ -197,8 +217,10 @@ EOF
 | `app.indexPage` | — | Already `''` (clean URLs). Set `'index.php'` only on a server without URL rewriting |
 | `database.default.*` | ✅ | MariaDB connection details |
 | `encryption.key` | ✅ | 32+ char hex key (use `php spark key:generate`) |
-| `email.SMTPHost` | ⚠️ | Without this, form emails are silently skipped |
-| `email.SMTPUser` | ⚠️ | SMTP username |
+| `email.SMTPHost` | ⚠️ | Mail server, e.g. `smtp.gmail.com`. Without it no alerts are sent (messages are still saved) |
+| `email.SMTPUser` | ⚠️ | Mail account, e.g. `smtptest897@gmail.com` |
+| `email.recipients` | — | Who receives the alerts, comma-separated; empty = the contact email in Settings |
+| `email.fromEmail` | — | Address the alerts come from (Gmail: the account itself) |
 | `email.SMTPPass` | ⚠️ | SMTP password — kept in `.env` only, never in the database |
 
 ---

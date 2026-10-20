@@ -106,8 +106,10 @@ class CmsStatus extends BaseCommand
         $rows[] = $this->row('Encryption key', $keyOk ? 'set' : 'NOT set', $keyOk ? 'ok' : 'fail', $keyOk ? '' : 'Run: php spark key:generate');
 
         // ── SMTP / email config ───────────────────────────────────────────────
-        $smtpHost = (string) env('email.SMTPHost', '');
-        $rows[] = $this->row('SMTP host', $smtpHost !== '' ? $smtpHost : 'not configured', $smtpHost !== '' ? 'ok' : 'warn', $smtpHost === '' ? 'Set email.SMTPHost in .env; emails silent until then' : '');
+        // Same check the Settings screen and the dashboard use.
+        $mail   = \App\Libraries\Notifier::status();
+        $rows[] = $this->row('Email alerts', $mail['ok'] ? 'ready → ' . implode(', ', \App\Libraries\Notifier::recipients()) : 'not sending',
+            $mail['ok'] ? 'ok' : 'warn', $mail['ok'] ? 'Check with Admin → Settings → Send a test email' : (string) $mail['problem']);
 
         // ── App environment ───────────────────────────────────────────────────
         $env    = (string) env('CI_ENVIRONMENT', 'production');

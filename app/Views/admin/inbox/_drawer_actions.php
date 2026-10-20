@@ -16,7 +16,7 @@ $moves = match ($row['status']) {
 ?>
 <a class="btn btn-primary" href="<?= esc($base, 'attr') ?>">Open full message</a>
 <?php if (! empty($row['email'])): ?>
-  <a class="btn btn-secondary" href="mailto:<?= esc($row['email'], 'attr') ?>">Reply by email</a>
+  <a class="btn btn-secondary" href="<?= esc($base, 'attr') ?>#reply">Reply</a>
 <?php endif ?>
 <?php foreach ($moves as $status => $label): ?>
   <form method="POST" action="<?= esc($base . '/' . $status, 'attr') ?>">

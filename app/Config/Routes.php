@@ -101,6 +101,7 @@ $routes->group('admin', static function ($routes) {
         $routes->get('inbox/message/(:segment)/(:num)',           'Admin\Inbox::show/$1/$2');
         $routes->post('inbox/message/(:segment)/(:num)/(:alpha)', 'Admin\Inbox::status_/$1/$2/$3', ['filter' => 'csrf']);
         $routes->post('inbox/note/(:num)',           'Admin\Inbox::note/$1',  ['filter' => 'csrf']);
+        $routes->post('inbox/reply/(:segment)/(:num)', 'Admin\Inbox::reply/$1/$2', ['filter' => 'csrf']);
         $routes->post('inbox/delete/(:segment)/(:num)', 'Admin\Inbox::delete/$1/$2', ['filter' => 'csrf']);
         $routes->get('inbox/cv/(:num)',              'Admin\Inbox::cv/$1');
 
@@ -117,6 +118,7 @@ $routes->group('admin', static function ($routes) {
         // Settings (admin only)
         $routes->get('settings',        'Admin\Settings::index');
         $routes->post('settings/save',  'Admin\Settings::update', ['filter' => 'csrf']);
+        $routes->post('settings/test-email', 'Admin\Settings::testEmail', ['filter' => 'csrf']);
 
         // Users (admin only)
         $routes->get('users',          'Admin\Users::index');

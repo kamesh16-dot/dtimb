@@ -2,6 +2,7 @@
 
 namespace App\Controllers\Admin;
 
+use App\Libraries\Notifier;
 use App\Libraries\SeoAudit;
 use App\Models\ApplicationModel;
 use App\Models\EnquiryModel;
@@ -166,15 +167,15 @@ class Dashboard extends AdminController
                 'link'   => '/admin/news',
             ];
         }
-        if (trim((string) (config('Email')->SMTPHost ?? '')) === '') {
+        $mail = Notifier::status();
+        if (! $mail['ok']) {
             $items[] = [
                 'level'  => 'suggested',
                 'icon'   => 'bell',
                 'title'  => 'Email alerts are not switched on',
-                'why'    => 'New messages are still saved here, but nobody gets an email when one arrives. '
-                          . 'This needs your developer or hosting company to add the mail server details.',
+                'why'    => 'New messages are still saved here, but nobody gets an email when one arrives. ' . $mail['problem'],
                 'action' => $isAdmin ? 'See details' : null,
-                'link'   => $isAdmin ? '/admin/settings' : null,
+                'link'   => $isAdmin ? '/admin/settings#email' : null,
             ];
         }
         if ($content['seo'] > 0) {

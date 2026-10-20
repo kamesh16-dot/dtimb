@@ -43,6 +43,12 @@ The dashboard shows:
 Click **Save** after every change. Changes show on the website straight away.
 (The site icon — favicon — is a file on the server; ask your developer to change it.)
 
+**Email alerts** (on the same screen) shows whether new enquiries and job
+applications are being emailed, who receives them and from which address.
+Press **Send a test email** to check it works — the email should arrive within a
+minute (look in spam the first time). The mail account itself is set up on the
+server; ask your developer to change it.
+
 ---
 
 ## 2. Mail
@@ -271,31 +277,38 @@ The redirects are evaluated before the router, so they work even if the original
 
 ## 11. Forms Inbox
 
-The inbox collects all contact enquiries and career applications.
+Everything sent through the website's **Contact** and **Careers** forms arrives
+here. Each one is also emailed to the team (see Settings → Email alerts).
 
-### Tabs
-- **Enquiries** — contact form submissions
-- **Applications** — career applications (with CV download)
+### Tabs and filters
+- **Enquiries** — from the Contact page.
+- **Applications** — from the Careers page, with the CV. *Admins only*: CVs are
+  personal data.
+- **New / Read / Archived / All** — opening a message marks it **Read**;
+  **Archive** puts it away; **Mark unread** brings it back.
+- A blue **Replied** label shows which messages have been answered.
 
-### Status workflow
+### Reading a message
+Click a row to see it in a side panel, or **Open full message** for its own page.
 
-| Status | Meaning |
-|---|---|
-| **New** | Just received; shown in bold |
-| **Read** | Opened (set automatically when you view the detail) |
-| **Reviewing** | You are actively working on this enquiry |
-| **Closed** | Resolved / no further action needed |
+### Replying
+On the message page, press **Reply** (or scroll to the reply box):
+1. The subject and a greeting ("Dear Priya, Thank you for your enquiry…") are
+   filled in — write your answer between them.
+2. Your name, the company name, email and website are added under your message
+   automatically, and their original message can be quoted below it.
+3. Tick **Send a copy to me** to receive the email yourself.
+4. Press **Send reply**. It is emailed to them straight away, and listed under
+   **Replies sent**, so everyone can see what was said, by whom and when.
 
-### Actions
-- **Detail** — click any row to open the full submission. Opening an enquiry marks it **Read**; opening an application marks it **Reviewing**.
-- **Status + Notes** — update the status and add internal notes visible only to staff
-- **Bulk mark as** — tick multiple rows and set status in one action
-- **CSV export** — downloads the current filtered view as a UTF-8 BOM CSV (safe for Excel)
-- **CV download** — authenticated link; the original filename is preserved for download even though the stored file uses a random name
-- **Delete / Restore** — admin only; soft-deleted items appear in the Bin tab and can be restored
+When they answer, it comes to the team's email address, not to the website.
+Editors can reply to enquiries; only admins can reply to job applications.
+Prefer your own mail program? Use **Use my own mail app instead**.
 
-### Search and filter
-Use the search box (searches name, email, company, message) and date-range picker together with the status tabs to filter the list before exporting.
+### Notes and deleting
+- **Internal note** (enquiries) — visible only in the CMS; the sender never sees it.
+- **Delete** *(admins only)* — removes the message, its CV and its replies for
+  good. Messages older than two years are removed automatically each night.
 
 ---
 

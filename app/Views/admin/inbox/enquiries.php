@@ -23,6 +23,7 @@
               <?php if ($r['status'] === 'new'): ?><span class="pill pill-red">New</span>
               <?php elseif ($r['status'] === 'archived'): ?><span class="pill pill-grey">Archived</span>
               <?php else: ?><span class="pill pill-green">Read</span><?php endif ?>
+              <?php if (isset($replied[$r['id']])): ?><span class="pill pill-blue" title="Last replied <?= esc(date('d M Y', strtotime((string) $replied[$r['id']])), 'attr') ?>">Replied</span><?php endif ?>
             </td>
             <td class="row-more" aria-hidden="true">›</td>
           </tr>
@@ -45,6 +46,7 @@
           ['label' => 'Company',  'value' => $r['company']],
           ['label' => 'Interested in', 'value' => $r['interest']],
           ['label' => 'Status',   'value' => match ($r['status']) { 'new' => ['New — not opened yet', 'red'], 'archived' => ['Archived', 'grey'], default => ['Read', 'green'] }, 'type' => 'pill'],
+          ['label' => 'Replied', 'value' => isset($replied[$r['id']]) ? 'Last reply sent ' . date('d M Y, H:i', strtotime((string) $replied[$r['id']])) : 'Not yet'],
           ['label' => 'Internal note', 'value' => $r['notes'] ?? null, 'type' => 'long'],
       ],
       'actions' => view('admin/inbox/_drawer_actions', ['type' => 'enquiry', 'row' => $r, 'adminUser' => $adminUser]),

@@ -6,6 +6,69 @@ Versioning: `<major>.<phase>.<patch>`.
 
 ---
 
+## [1.27.0] — 2026-10-20 — Reply from the Inbox
+
+### Added
+- **Reply to enquiries and job applications from the CMS.** The message page
+  has a reply box: the visitor's address, a subject and greeting filled in,
+  "Include their original message" and "Send a copy to me". The reply is a
+  branded email with the sender's name and a company signature; Reply-To is the
+  team address, so their answer reaches the team, not the sending account
+- **Reply history** on each message ("Replies sent"), kept in the new
+  `inbox_replies` table (migration `CreateInboxReplies`), recorded only once the
+  email has actually gone; a blue **Replied** label in the Inbox lists and in
+  the details panel
+- Editors can reply to enquiries; applications stay admin-only
+- Deleting a message, and `cms:housekeeping`, also remove its replies
+
+### Changed
+- "Reply by email" (which opened the computer's mail program) is now **Reply**,
+  going to the reply box; "Use my own mail app instead" keeps the old way
+
+### Docs
+- User guide's Inbox section rewritten — it described statuses, bulk actions,
+  CSV export, a Bin and search that the Inbox does not have
+
+### Tests
+- Six database-backed reply tests (sent to the right people, quoted, recorded,
+  refused when empty or when email is not set up, editors vs applications,
+  escaped). Suite: 198 tests
+
+### Deploy
+- `php spark migrate` (creates `inbox_replies`)
+
+---
+
+## [1.26.0] — 2026-10-20 — Email alerts that read well
+
+### Added
+- **Professional alert emails** for every enquiry and job application
+  (`App\Libraries\Notifier`, `app/Views/emails/`): an HTML email with a clear
+  subject ("New enquiry: Priya Raman (Sundaram Tubes)"), a one-line summary, a
+  details table, the visitor's message, and **Reply** / **Open in the CMS**
+  buttons, times in IST, and a plain-text copy. Reply-To is the visitor; the CV
+  is attached to applications under its original file name
+- **Send a test email** in Admin → Settings, with the setup shown plainly:
+  ready or not and why, who receives the alerts, from which address, through
+  which server. Gmail sign-in failures are explained in plain words
+- `email.recipients` in `.env`: who receives the alerts (several, comma
+  separated); empty falls back to the contact email in Settings
+- Gmail configured for the test mailbox `smtptest897@gmail.com` — one block in
+  `.env` (and `.env.example`) to change before deployment. App Password spaces
+  are ignored
+
+### Changed
+- Settings, the dashboard and `cms:status` share one readiness check, so a
+  missing password is reported rather than "configured"
+- A submission that cannot be emailed is logged as an error (warnings are not
+  recorded in production, so it used to vanish); the visitor is never affected
+
+### Tests
+- `Unit/NotifierTest` (9), including that anything a visitor types is escaped
+  in the email. Suite: 192 tests
+
+---
+
 ## [1.25.0] — 2026-10-19 — Security hardening and a rebuildable install
 
 From a review of the project's weak spots. Everything except the PHP 8.2 /

@@ -41,7 +41,7 @@ class SiteSettingModel
             'type'     => 'email',
             'property' => 'email',
             'required' => true,
-            'hint'     => 'Where enquiries are sent, and the address shown across the site.',
+            'hint'     => 'Shown across the site. Enquiry emails go here too, unless email.recipients in .env names someone else.',
         ],
         'linkedin' => [
             'label'    => 'LinkedIn page',

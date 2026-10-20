@@ -38,23 +38,38 @@ $val = static fn (string $f) => old($f, $settings[$f] ?? '');
   </form>
 </div>
 
-<div class="card card-pad" style="margin-top:1.25rem">
-  <h2 style="font-size:.95rem;margin:0 0 .3rem">Outgoing email</h2>
+<div class="card card-pad" style="margin-top:1.25rem" id="email">
+  <h2 style="font-size:.95rem;margin:0 0 .3rem">Email alerts</h2>
+  <p style="font-size:.8rem;color:var(--muted);margin:0 0 .8rem">
+    Every enquiry and job application from the website is emailed to the people below, with the CV attached for applications.
+  </p>
+
   <?php if ($mail['configured']): ?>
-    <p style="font-size:.8rem;color:var(--dim);margin:0">
-      <span class="pill pill-green">Configured</span>
-      Sending through <strong><?= esc($mail['host']) ?></strong><?= $mail['from'] !== '' ? ' as ' . esc($mail['from']) : '' ?>.
-    </p>
+    <p style="margin:0 0 .8rem"><span class="pill pill-green">Ready</span></p>
   <?php else: ?>
-    <p style="font-size:.8rem;color:var(--dim);margin:0">
-      <span class="pill pill-orange">Not configured</span>
-      Enquiries and job applications are still saved to the Inbox, but no email is sent about them.
+    <p style="font-size:.85rem;margin:0 0 .8rem">
+      <span class="pill pill-orange">Not sending yet</span>
+      <?= esc($mail['problem']) ?> Messages are still saved to the Inbox.
     </p>
   <?php endif ?>
-  <p style="font-size:.75rem;color:var(--dim);margin:.6rem 0 0">
-    Mail server details are credentials, so they are set in the site's <code>.env</code> file rather than here.
-    Ask whoever manages the server to set <code>email.SMTPHost</code>, <code>email.SMTPUser</code> and
-    <code>email.SMTPPass</code>.
+
+  <table class="data-table" style="margin-bottom:.9rem">
+    <tbody>
+      <tr><td style="width:11rem;color:var(--muted)">Sent to</td><td><?= $mail['to'] !== '' ? esc($mail['to']) : '<span class="drawer-none">Nobody</span>' ?></td></tr>
+      <tr><td style="color:var(--muted)">Sent from</td><td><?= $mail['from'] !== '' ? esc($mail['from']) : '<span class="drawer-none">Not set</span>' ?></td></tr>
+      <tr><td style="color:var(--muted)">Mail server</td><td><?= $mail['host'] !== '' ? esc($mail['host']) . ' · port ' . (int) $mail['port'] : '<span class="drawer-none">Not set</span>' ?></td></tr>
+    </tbody>
+  </table>
+
+  <form method="POST" action="<?= admin_url('settings/test-email') ?>" style="display:inline">
+    <?= csrf_field() ?>
+    <button type="submit" class="btn btn-secondary"<?= $mail['configured'] ? '' : ' disabled title="Finish the setup in .env first"' ?>>Send a test email</button>
+  </form>
+
+  <p style="font-size:.75rem;color:var(--muted);margin:.9rem 0 0">
+    These are set in the site's <code>.env</code> file (the <code>email.*</code> lines), not here: the password is a credential
+    and should not live in the database. <code>email.recipients</code> chooses who receives the alerts; when it is empty
+    they go to the contact email above.
   </p>
 </div>
 

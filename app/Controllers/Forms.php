@@ -2,6 +2,7 @@
 
 namespace App\Controllers;
 
+use App\Libraries\Notifier;
 use App\Models\ApplicationModel;
 use App\Models\EnquiryModel;
 use CodeIgniter\HTTP\RedirectResponse;
@@ -10,7 +11,7 @@ use CodeIgniter\HTTP\RedirectResponse;
  * Contact / enquiry and career-application forms.
  *
  * Every submission is saved to the database, where it appears in the admin
- * inbox, and an email is attempted to Config\Site::$email. CVs go to
+ * inbox, and an email alert is sent (App\Libraries\Notifier). CVs go to
  * writable/uploads/careers/, outside the web root.
  *
  * If the database write fails the submission is appended to
@@ -115,8 +116,8 @@ class Forms extends BaseController
             }
         }
 
-        $this->save($kind, $data);
-        $this->mail($kind, $data, $attachment);
+        $id = $this->save($kind, $data);
+        Notifier::submission($kind, $data, $id, $attachment);
 
         return redirect()->to($back)->with('form_ok', $kind);
     }
@@ -125,22 +126,23 @@ class Forms extends BaseController
      * Record the submission. The database is the inbox; the file is the
      * fallback for when it cannot be written.
      */
-    private function save(string $kind, array $data): void
+    /** @return int|null the Inbox row's id, or null when it went to the fallback file */
+    private function save(string $kind, array $data): ?int
     {
         try {
-            $kind === 'career'
+            return $kind === 'career'
                 ? $this->saveApplication($data)
                 : $this->saveEnquiry($data);
-
-            return;
         } catch (\Throwable $e) {
             log_message('error', 'Could not save ' . $kind . ' submission, falling back to file: ' . $e->getMessage());
         }
 
         $this->store($kind, $data);
+
+        return null;
     }
 
-    private function saveEnquiry(array $data): void
+    private function saveEnquiry(array $data): int
     {
         $model = new EnquiryModel();
 
@@ -157,9 +159,11 @@ class Forms extends BaseController
         ])) {
             throw new \RuntimeException('enquiry insert rejected: ' . implode(' ', $model->errors()));
         }
+
+        return (int) $model->getInsertID();
     }
 
-    private function saveApplication(array $data): void
+    private function saveApplication(array $data): int
     {
         $model = new ApplicationModel();
 
@@ -177,6 +181,8 @@ class Forms extends BaseController
         ])) {
             throw new \RuntimeException('application insert rejected: ' . implode(' ', $model->errors()));
         }
+
+        return (int) $model->getInsertID();
     }
 
     /** Append-only fallback record, used when the database write fails. */
@@ -188,33 +194,5 @@ class Forms extends BaseController
         }
         $row = ['at' => date('c'), 'ip' => $this->request->getIPAddress()] + $data;
         file_put_contents($dir . '/' . $kind . '-' . date('Y-m') . '.jsonl', json_encode($row, JSON_UNESCAPED_UNICODE) . "\n", FILE_APPEND | LOCK_EX);
-    }
-
-    private function mail(string $kind, array $data, ?string $attachment): void
-    {
-        try {
-            $site  = config('Site');
-            $email = service('email');
-            $from  = config('Email')->fromEmail ?: $site->email;
-
-            $email->setFrom($from, $site->name . ' website');
-            $email->setTo($site->email);
-            $email->setReplyTo($data['email'], $data['name']);
-            $email->setSubject(($kind === 'career' ? 'Career application' : 'Website enquiry') . ' - ' . $data['name']);
-
-            $lines = [];
-            foreach ($data as $k => $v) {
-                $lines[] = ucfirst(str_replace('_', ' ', $k)) . ': ' . $v;
-            }
-            $email->setMessage(implode("\n", $lines));
-            if ($attachment) {
-                $email->attach($attachment);
-            }
-            if (! $email->send(false)) {
-                log_message('warning', 'Form email not sent (configure app/Config/Email.php). Saved in writable/forms/.');
-            }
-        } catch (\Throwable $e) {
-            log_message('error', 'Form email failed: ' . $e->getMessage());
-        }
     }
 }

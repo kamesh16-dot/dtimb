@@ -12,8 +12,8 @@ use CodeIgniter\CLI\CLI;
 /**
  * cms:housekeeping — the tidying a live site needs, meant to run nightly.
  *
- *   - Deletes enquiries and job applications (with their CVs) older than
- *     --inbox-months. Personal data should not be kept for ever.
+ *   - Deletes enquiries and job applications (with their CVs and the replies
+ *     sent to them) older than --inbox-months. Personal data should not be kept for ever.
  *   - Deletes CV files that no application refers to any more.
  *   - Deletes log files older than --log-days, so logs cannot fill the disk.
  *
@@ -86,6 +86,13 @@ class CmsHousekeeping extends BaseCommand
                 }
                 if ($oldA !== []) {
                     $applications->whereIn('id', array_column($oldA, 'id'))->delete();
+                }
+                // The replies sent to them hold the same personal details.
+                $replies = new \App\Models\InboxReplyModel();
+                foreach (['enquiry' => $oldE, 'application' => $oldA] as $type => $gone) {
+                    if ($gone !== []) {
+                        $replies->where('type', $type)->whereIn('message_id', array_column($gone, 'id'))->delete();
+                    }
                 }
             }
 

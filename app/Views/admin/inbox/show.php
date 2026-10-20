@@ -82,7 +82,7 @@ $detail = $isApplication
       <?= csrf_field() ?>
       <button type="submit" class="btn btn-secondary">Mark unread</button>
     </form>
-    <a href="mailto:<?= esc($row['email'], 'attr') ?>" class="btn btn-primary">Reply by email</a>
+    <a href="#reply" class="btn btn-primary">Reply</a>
     <?php if (($adminUser['role'] ?? '') === 'admin'): ?>
       <form method="POST" action="<?= admin_url('inbox/delete/') ?><?= esc($type, 'url') ?>/<?= (int) $row['id'] ?>" style="display:inline">
         <?= csrf_field() ?>
@@ -90,6 +90,75 @@ $detail = $isApplication
       </form>
     <?php endif ?>
   </div>
+</div>
+
+<?php if ($replies !== []): ?>
+  <div class="card card-pad" style="margin-top:1rem" id="replies">
+    <h2 style="font-size:.95rem;margin:0 0 .8rem">Replies sent (<?= count($replies) ?>)</h2>
+    <ol class="reply-history">
+      <?php foreach ($replies as $r): ?>
+        <li>
+          <div class="reply-meta">
+            <strong><?= esc($r['user_name'] !== '' ? $r['user_name'] : 'Someone') ?></strong>
+            replied to <?= esc($r['to_email']) ?> · <?= esc(date('d M Y, H:i', strtotime((string) $r['created_at']))) ?>
+          </div>
+          <div class="reply-subject"><?= esc($r['subject']) ?></div>
+          <div class="reply-body"><?= esc($r['body']) ?></div>
+        </li>
+      <?php endforeach ?>
+    </ol>
+  </div>
+<?php endif ?>
+
+<div class="card form-card card-pad" style="margin-top:1rem" id="reply">
+  <h2 style="font-size:.95rem;margin:0 0 .2rem"><?= $replies === [] ? 'Reply to ' . esc(strtok((string) $row['name'], ' ') ?: $row['name']) : 'Send another reply' ?></h2>
+  <p class="field-hint" style="margin:0 0 1rem">
+    Sent by email from the website, with your name and the company signature. When they answer, it comes to
+    the team inbox. It is kept here, so everyone can see what was said.
+  </p>
+
+  <?php if (! $mailReady['ok']): ?>
+    <div class="seo-alert" style="margin-bottom:1rem">
+      <strong>Email is not set up yet, so replies cannot be sent.</strong>
+      <?= esc($mailReady['problem']) ?>
+      <?php if (($adminUser['role'] ?? '') === 'admin'): ?><a href="<?= admin_url('settings') ?>#email">Email settings</a><?php endif ?>
+    </div>
+  <?php endif ?>
+
+  <form method="POST" action="<?= admin_url('inbox/reply/') ?><?= esc($type, 'url') ?>/<?= (int) $row['id'] ?>">
+    <?= csrf_field() ?>
+    <div class="field">
+      <label>To</label>
+      <input type="text" value="<?= esc($row['name'] . ' <' . $row['email'] . '>', 'attr') ?>" disabled>
+    </div>
+    <div class="field">
+      <label for="reply-subject">Subject</label>
+      <input type="text" id="reply-subject" name="subject" maxlength="200" required value="<?= esc((string) old('subject', $draft['subject']), 'attr') ?>">
+      <?php if (! empty($errors['subject'])): ?><p class="field-hint" style="color:var(--red)"><?= esc($errors['subject']) ?></p><?php endif ?>
+    </div>
+    <div class="field">
+      <label for="reply-body">Message</label>
+      <textarea id="reply-body" name="body" rows="11" required maxlength="10000"><?= esc((string) old('body', $draft['body'])) ?></textarea>
+      <p class="field-hint">Your name, the company name, email and website are added below your message automatically.</p>
+      <?php if (! empty($errors['body'])): ?><p class="field-hint" style="color:var(--red)"><?= esc($errors['body']) ?></p><?php endif ?>
+    </div>
+    <div class="field">
+      <label style="display:flex;align-items:center;gap:.5rem;cursor:pointer">
+        <input type="checkbox" name="quote" value="1" <?= old('subject') === null || old('quote') !== null ? 'checked' : '' ?> style="width:auto">
+        Include their original message below my reply
+      </label>
+      <?php if ($senderEmail !== ''): ?>
+        <label style="display:flex;align-items:center;gap:.5rem;cursor:pointer;margin-top:.5rem">
+          <input type="checkbox" name="copy" value="1" <?= old('copy') !== null ? 'checked' : '' ?> style="width:auto">
+          Send a copy to me (<?= esc($senderEmail) ?>)
+        </label>
+      <?php endif ?>
+    </div>
+    <div class="btn-row">
+      <button type="submit" class="btn btn-primary"<?= $mailReady['ok'] ? '' : ' disabled' ?>>Send reply</button>
+      <a href="mailto:<?= esc($row['email'], 'attr') ?>" class="btn btn-secondary">Use my own mail app instead</a>
+    </div>
+  </form>
 </div>
 
 <?php if (! $isApplication): ?>
